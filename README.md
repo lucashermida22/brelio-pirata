@@ -16,3 +16,8 @@ Abre `index.html` en el navegador: es una sola página autocontenida (fotos, can
 - `src/` — CSS y JS de cada animación.
 - `assets/` — fotos y recortes de audio.
 - `build/` — scripts que generaron `index.html` a partir de la página original.
+
+## Fotos
+- `assets/p1.jpg` … `p8.jpg` — recortes cuadrados que usa la página (foto1 … foto8).
+- `assets/originales/` — las fotos originales completas y la ilustración de Mati.
+- `assets/burst_fixed.jpg` — la foto principal ya girada.
