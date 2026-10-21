@@ -1,0 +1,71 @@
+/* =====================================================================
+   PERSPECTIVA 3D para kawaii, cine (Tierra), bruh y reggaetón:
+   sin rectángulos, equipos encarados en 3D, cámara en movimiento.
+   ===================================================================== */
+#vsLayer.p3d{perspective:1100px;perspective-origin:50% 38%}
+#vsLayer.p3d #vsArena{overflow:visible;transform-style:preserve-3d}
+#vsLayer.p3d .vs-team,#vsLayer.p3d .vs-grid{transform-style:preserve-3d}
+#vsLayer.p3d .vs-team{background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;outline:none!important;clip-path:none!important;border-radius:0}
+#vsLayer.p3d .vs-card{transform-style:preserve-3d;transform:translateZ(var(--z,0px))}
+#vsLayer.p3d .vs-card:nth-child(3n+1){--z:34px}#vsLayer.p3d .vs-card:nth-child(3n+2){--z:-18px}#vsLayer.p3d .vs-card:nth-child(3n){--z:12px}
+#vsLayer.p3d .vs-team-name{transform:translateZ(60px)}
+#vsLayer.p3d .vs-badge{transform:translateZ(120px)}
+/* sombra de suelo bajo cada equipo, para dar profundidad */
+#vsLayer.p3d .vs-team::after{content:"";position:absolute;left:8%;right:8%;bottom:-6%;height:22%;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.35),transparent 70%);transform:rotateX(80deg);pointer-events:none}
+
+/* ---- KAWAII: dos nubes de cartas que flotan y se miran ---- */
+#vsLayer.p3d[data-anim="kawaii"] #vsArena{animation:camK 7s ease-in-out infinite alternate}
+@keyframes camK{from{transform:rotateX(8deg) rotateY(-7deg)}to{transform:rotateX(2deg) rotateY(7deg)}}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team.from-l{animation:k3InL 1.1s cubic-bezier(.2,.9,.25,1.2) both,k3Float 3.2s ease-in-out 1.1s infinite}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team.from-r{animation:k3InR 1.1s cubic-bezier(.2,.9,.25,1.2) both,k3Float 3.2s ease-in-out 1.6s infinite}
+@keyframes k3InL{from{opacity:0;transform:translateX(-30vw) translateZ(-900px) rotateY(80deg)}to{transform:rotateY(18deg)}}
+@keyframes k3InR{from{opacity:0;transform:translateX(30vw) translateZ(-900px) rotateY(-80deg)}to{transform:rotateY(-18deg)}}
+@keyframes k3Float{0%,100%{translate:0 0 0}50%{translate:0 -12px 40px}}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team.from-l{transform:rotateY(18deg)}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team.from-r{transform:rotateY(-18deg)}
+#vsLayer.p3d[data-anim="kawaii"].done .vs-team.from-l{animation:k3Float 3.2s ease-in-out infinite;transform:rotateY(12deg) rotateX(6deg)}
+#vsLayer.p3d[data-anim="kawaii"].done .vs-team.from-r{animation:k3Float 3.2s ease-in-out .5s infinite;transform:rotateY(-12deg) rotateX(6deg)}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team{transition:transform 1.2s cubic-bezier(.2,.9,.25,1.2)}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team-name{background:#fff;padding:6px 12px;border-radius:999px;box-shadow:0 6px 18px -6px rgba(233,62,159,.6)}
+#vsLayer.p3d[data-anim="kawaii"] .shape-bg.heart{transform:translate(-50%,-50%) translateZ(-60px)}
+
+/* ---- CINE (Tierra): dos líneas de reparto que convergen; cámara que orbita despacio ---- */
+#vsLayer.p3d[data-anim="cine"] #vsArena{animation:camC 14s ease-in-out infinite alternate}
+@keyframes camC{from{transform:rotateX(10deg) rotateY(-9deg) translateZ(-40px)}to{transform:rotateX(4deg) rotateY(9deg) translateZ(30px)}}
+#vsLayer.p3d[data-anim="cine"] .vs-team.from-l,#vsLayer.p3d[data-anim="cine"] .vs-team.from-r{animation:c3In 2s cubic-bezier(.2,.8,.2,1) both}
+@keyframes c3In{from{opacity:0;transform:translateZ(-1400px) rotateX(20deg);filter:blur(8px)}}
+#vsLayer.p3d[data-anim="cine"] .vs-team.from-l{transform:rotateY(26deg) translateZ(-40px)}
+#vsLayer.p3d[data-anim="cine"] .vs-team.from-r{transform:rotateY(-26deg) translateZ(-40px)}
+#vsLayer.p3d[data-anim="cine"].done .vs-team.from-l,#vsLayer.p3d[data-anim="cine"].done .vs-team.from-r{animation:none;transition:transform 2s cubic-bezier(.4,0,.2,1)}
+#vsLayer.p3d[data-anim="cine"].done .vs-team.from-l{transform:rotateY(14deg) translateZ(20px)}
+#vsLayer.p3d[data-anim="cine"].done .vs-team.from-r{transform:rotateY(-14deg) translateZ(20px)}
+#vsLayer.p3d[data-anim="cine"] .vs-face{box-shadow:0 0 0 1px #d9b866,0 20px 40px -10px #000,0 0 26px rgba(217,184,102,.22)}
+#vsLayer.p3d[data-anim="cine"] .shape-bg.poster{transform:translate(-50%,-50%) translateZ(-120px);border:0;box-shadow:none}
+
+/* ---- BRUH: la cámara salta de ángulo a lo bruto; cartas tiradas sobre el suelo ---- */
+#vsLayer.p3d[data-anim="bruh"] #vsArena{animation:camB 2.6s step-end infinite}
+@keyframes camB{0%{transform:rotateX(18deg) rotateY(-14deg) rotateZ(-3deg)}25%{transform:rotateX(-6deg) rotateY(22deg) rotateZ(4deg) scale(1.05)}50%{transform:rotateX(30deg) rotateY(4deg) rotateZ(-6deg)}75%{transform:rotateX(6deg) rotateY(-24deg) rotateZ(2deg) scale(.95)}}
+#vsLayer.p3d[data-anim="bruh"] #vsArena.punch{animation:punch .55s step-end}
+#vsLayer.p3d[data-anim="bruh"] .vs-team.from-l{transform:rotateY(24deg) rotateZ(-3deg)}
+#vsLayer.p3d[data-anim="bruh"] .vs-team.from-r{transform:rotateY(-24deg) rotateZ(4deg)}
+#vsLayer.p3d[data-anim="bruh"].done .vs-team.from-l{animation:none;transform:rotateX(26deg) rotateY(14deg)}
+#vsLayer.p3d[data-anim="bruh"].done .vs-team.from-r{animation:none;transform:rotateX(26deg) rotateY(-14deg)}
+#vsLayer.p3d[data-anim="bruh"] .vs-team-name{background:#fff;padding:4px 8px;outline:3px solid #000}
+#vsLayer.p3d[data-anim="bruh"] .vs-face{box-shadow:0 0 0 3px #000,8px 8px 0 rgba(0,0,0,.5)}
+
+/* ---- REGGAETÓN: equipos que bailan en 3D y acaban en un carrusel giratorio ---- */
+#vsLayer.p3d[data-anim="perreo"] #vsArena{animation:camP calc(var(--beat) * 4) ease-in-out infinite}
+@keyframes camP{0%,100%{transform:rotateX(12deg) rotateY(-8deg)}50%{transform:rotateX(16deg) rotateY(8deg) translateY(-6px)}}
+#vsLayer.p3d[data-anim="perreo"] .vs-team.from-l,#vsLayer.p3d[data-anim="perreo"] .vs-team.from-r{animation:p3Drop calc(var(--beat) * 1.4) cubic-bezier(.3,1.6,.5,1) both}
+@keyframes p3Drop{from{opacity:0;transform:translateY(-80vh) translateZ(-500px) rotateX(-60deg)}}
+#vsLayer.p3d[data-anim="perreo"] .vs-team.from-l{transform:rotateY(22deg)}
+#vsLayer.p3d[data-anim="perreo"] .vs-team.from-r{transform:rotateY(-22deg)}
+#vsLayer.p3d[data-anim="perreo"].done .vs-team.from-l,#vsLayer.p3d[data-anim="perreo"].done .vs-team.from-r{animation:none;transform:rotateX(-6deg)}
+#vsLayer.p3d[data-anim="perreo"] .vs-team-name{transform:translateZ(80px) translateY(-14px)}
+#vsLayer.p3d .vs-team.ring-on .vs-card{transform:translate(var(--tx),var(--ty)) rotateY(calc(var(--a) + 90deg + var(--spin))) translateZ(var(--r3)) rotateY(calc(-1 * (var(--a) + 90deg + var(--spin)))) scale(var(--sc,1))}
+#vsLayer.p3d .shape-bg.ring{transform:translate(-50%,-50%) translateY(calc(var(--card) * .9)) rotateX(78deg);-webkit-mask:none;mask:none;background:repeating-conic-gradient(from 0deg,rgba(255,47,160,.6) 0 15deg,rgba(0,255,240,.45) 15deg 30deg,rgba(255,225,77,.5) 30deg 45deg);border-radius:50%;box-shadow:0 0 60px rgba(255,47,160,.7)}
+
+@media (max-width:640px){
+  #vsLayer.p3d .vs-team.from-l,#vsLayer.p3d .vs-team.from-r{transform:rotateX(10deg)!important}
+  #vsLayer.p3d[data-anim="bruh"].done .vs-team.from-l,#vsLayer.p3d[data-anim="bruh"].done .vs-team.from-r{transform:rotateX(40deg)!important}
+}
