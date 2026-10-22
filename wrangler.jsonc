@@ -1,0 +1,32 @@
+// Configuración del Worker "brelio". Ver worker/README.md para el alta inicial.
+{
+  "name": "brelio",
+  "account_id": "490087a293a14251a77c756108cb5076", // cuenta de Cloudflare del dueño
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false, // que no se pueda entrar por *.workers.dev saltándose Access
+  "assets": {
+    "directory": "./dist",
+    // Solo estas rutas pasan por el Worker; el resto lo sirven los assets estáticos
+    "run_worker_first": ["/api/*", "/media/*"],
+    "not_found_handling": "single-page-application"
+  },
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "brelio-media" }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "brelio",
+      // PLACEHOLDER: pegar aquí el id que imprime `wrangler d1 create brelio`
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "vars": {
+    // PLACEHOLDER: "<equipo>.cloudflareaccess.com" (vacío = sin Access)
+    "ACCESS_TEAM": "",
+    // PLACEHOLDER: "Application Audience (AUD) Tag" de la app de Access
+    "ACCESS_AUD": "",
+    // "access" | "key" | "dev". Vacío = automático:
+    //   ACCESS_AUD relleno -> access; secreto GROUP_KEY definido -> key; si no -> dev (abierto)
+    "AUTH_MODE": ""
+  }
+}
