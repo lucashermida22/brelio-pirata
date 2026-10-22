@@ -1,4 +1,4 @@
--- Esquema de D1 para Brelio. Idempotente: se puede ejecutar varias veces.
+-- Esquema de D1 para Lerelio. Idempotente: se puede ejecutar varias veces.
 --   wrangler d1 execute brelio --remote --file schema.sql
 
 CREATE TABLE IF NOT EXISTS players (

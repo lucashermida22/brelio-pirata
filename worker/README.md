@@ -1,4 +1,4 @@
-# Worker de Brelio
+# Worker de Lerelio
 
 API y servidor de recursos. JavaScript plano (módulos ES), sin framework.
 

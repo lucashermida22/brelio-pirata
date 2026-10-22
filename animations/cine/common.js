@@ -5,7 +5,7 @@
 import { loadThree } from '@kit';
 
 export const CINE = {
-  title: 'BRELIO PICTURES', winTitle: 'Y EL GANADOR ES…', sub: 'presenta · los equipos de hoy', btn: 'Ver los créditos',
+  title: 'LERELIO PICTURES', winTitle: 'Y EL GANADOR ES…', sub: 'presenta · los equipos de hoy', btn: 'Ver los créditos',
   song: 'cine/uni.mp3',
   upAt: 4200, arenaAt: 5300, cardsAt: 1400, step: [300, 600], pops: ['✦', '✧', '✦'], hold: 4700,
   // calienta Three.js, la Tierra y sus texturas para que play() arranque sin esperas

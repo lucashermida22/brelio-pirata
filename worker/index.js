@@ -1,4 +1,4 @@
-// Worker de Brelio: API (/api/*) y recursos (/media/*). La web estática la sirven los assets.
+// Worker de Lerelio: API (/api/*) y recursos (/media/*). La web estática la sirven los assets.
 import { authenticate, authMode, safeEqual } from './auth.js';
 import { HttpError, errorJson, json, readJson } from './http.js';
 import players from './routes/players.js';
@@ -48,7 +48,7 @@ export default {
       }
       return pathMatched ? errorJson(405, 'Método no permitido') : errorJson(404, 'Ruta no encontrada');
     } catch (e) {
-      if (e instanceof HttpError) return errorJson(e.status, e.message, e.status === 401 ? { 'www-authenticate': 'Brelio' } : {});
+      if (e instanceof HttpError) return errorJson(e.status, e.message, e.status === 401 ? { 'www-authenticate': 'Lerelio' } : {});
       console.error(e);
       return errorJson(500, 'Error interno');
     }

@@ -1,8 +1,8 @@
-# Arquitectura: Brelio entre amigos
+# Arquitectura: Lerelio entre amigos
 
-> **Propuesta.** Nada de esto está montado todavía. Hoy Brelio es un único `index.html` generado por los scripts de `build/` (animaciones en `src/`, canciones y fotos incrustadas en base64), y la lista de jugadores y las fotos asignadas viven en el `localStorage` de cada navegador.
+> **Propuesta.** Nada de esto está montado todavía. Hoy Lerelio es un único `index.html` generado por los scripts de `build/` (animaciones en `src/`, canciones y fotos incrustadas en base64), y la lista de jugadores y las fotos asignadas viven en el `localStorage` de cada navegador.
 
-Brelio lo usamos y lo hacemos un grupo de amigos, así que el objetivo es **cero fricción**:
+Lerelio lo usamos y lo hacemos un grupo de amigos, así que el objetivo es **cero fricción**:
 
 - el **código** está en GitHub y cualquiera del grupo lo cambia sin pedir permiso;
 - los **recursos** (canciones, fotos, imágenes, gifs, vídeos) se suben desde la propia web a **R2**, sin pasar por git ni por revisiones;

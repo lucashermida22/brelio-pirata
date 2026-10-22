@@ -1,6 +1,8 @@
-# Brelio · Pachangas
+# Lerelio · Pachangas
 
 Generador de equipos aleatorios para pachangas, en clave de parodia de software de gestión.
+
+> Antes se llamaba «Brelio». El repositorio sigue siendo `brelio-pirata`, y los identificadores internos (claves de `localStorage` `brelio-*`, Worker, D1 y R2 `brelio`/`brelio-media`) se mantienen para no romper datos ni despliegues.
 
 - Lista de jugadores con foto (toca el avatar: elige una existente o sube una nueva).
 - Reparto en N equipos o por tamaño, con nombres de equipo aleatorios.

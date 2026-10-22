@@ -162,7 +162,7 @@ export async function playFurious(X){
     const bc = document.createElement('canvas'); bc.width = 1024; bc.height = 512; const g = bc.getContext('2d');
     const gr = g.createLinearGradient(0, 0, 1024, 0); gr.addColorStop(0, '#16161c'); gr.addColorStop(1, '#3a2a22'); g.fillStyle = gr; g.fillRect(0, 0, 1024, 512);
     const s = Math.min(heroImg.width / 300, heroImg.height / 460); g.drawImage(heroImg, (heroImg.width - 300 * s) / 2, (heroImg.height - 460 * s) / 2, 300 * s, 460 * s, 40, 26, 300, 460);
-    g.fillStyle = '#f2e6cf'; g.font = '800 86px "Plus Jakarta Sans", system-ui, sans-serif'; g.fillText('BRELIO', 380, 190); g.font = '500 40px Geist, system-ui, sans-serif'; g.fillStyle = '#e8a35a'; g.fillText('presenta: el último viaje', 384, 260);
+    g.fillStyle = '#f2e6cf'; g.font = '800 86px "Plus Jakarta Sans", system-ui, sans-serif'; g.fillText('LERELIO', 380, 190); g.font = '500 40px Geist, system-ui, sans-serif'; g.fillStyle = '#e8a35a'; g.fillText('presenta: el último viaje', 384, 260);
     const zB = Z0 - 70, xB = xm(zB) + mainW / 2 + 8;
     const board = new T.Group(); board.position.set(xB, ry(zB), zB); board.rotation.y = -.45; scene.add(board);
     const panel = new T.Mesh(new T.PlaneGeometry(12, 6), new T.MeshBasicMaterial({ map: tex(bc), color: 0xd8d0c8, side: T.DoubleSide })); panel.position.y = 7.5; panel.castShadow = true; board.add(panel);

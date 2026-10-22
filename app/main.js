@@ -1,4 +1,4 @@
-// Arranque de Brelio: estilos, datos (Worker o localStorage), animaciones y rutas.
+// Arranque de Lerelio: estilos, datos (Worker o localStorage), animaciones y rutas.
 import './styles/base.css';
 import './styles/app.css';
 import './styles/recursos.css';

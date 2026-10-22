@@ -35,7 +35,6 @@
   .logo{display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);font:600 19px/1 var(--f-head);letter-spacing:-.04em}
   .logo-mark{width:18px;height:18px;border-radius:6px;background:var(--ink);position:relative}
   .logo-mark::after{content:"";position:absolute;inset:5px;border-radius:3px;background:#fff}
-  .tag-pirata{font:500 10px/1 var(--f-body);letter-spacing:0;background:var(--well);color:var(--muted);padding:4px 6px;border-radius:6px;margin-left:4px}
   .links{flex:1;display:flex;justify-content:center;gap:4px}
   .links span{font-size:14px;font-weight:500;color:var(--text);padding:6px 12px;border-radius:8px;cursor:not-allowed;display:inline-flex;align-items:center;gap:4px}
   .links span:hover{background:var(--well)}
