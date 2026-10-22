@@ -1,0 +1,5 @@
+# El núcleo y el SDK necesitan aprobación del mantenedor
+/app/   @lucashermida22
+/sdk/   @lucashermida22
+/build/ @lucashermida22
+/worker/ @lucashermida22

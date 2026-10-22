@@ -84,7 +84,7 @@
   addEventListener('keydown', e => {
     if (!vsOpen || e.key.length !== 1) return;
     keyBuf = (keyBuf + e.key.toLowerCase()).slice(-4);
-    if (keyBuf === 'mati') eggMati();
+    if (keyBuf === 'mati'){ if (!(typeof ffEggHook === 'function' && ffEggHook())) eggMati(); }
   });
 
   // ---- giro final del ganador en la variante Mati: el verdadero ganador es Mati ----

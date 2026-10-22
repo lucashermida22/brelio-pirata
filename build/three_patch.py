@@ -6,7 +6,7 @@ HEAD_SCRIPTS = """<script defer src="https://cdnjs.cloudflare.com/ajax/libs/thre
 <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 """
-THREE_CSS = open("src/endshapes.css").read() + open("src/egg.css").read() + open("src/p3d.css").read() + """.three-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+THREE_CSS = open("src/endshapes.css").read() + open("src/egg.css").read() + open("src/p3d.css").read() + open("src/furious.css").read() + """.three-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
 .three-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
 .three-flash.go{animation:threeFlash 1.1s ease-out}
 @keyframes threeFlash{0%{opacity:0}6%{opacity:1}100%{opacity:0}}
@@ -24,7 +24,7 @@ THREE_CSS = open("src/endshapes.css").read() + open("src/egg.css").read() + open
 rep = [
     ('<link href="https://fonts.googleapis.com/css2?', HEAD_SCRIPTS + '<link href="https://fonts.googleapis.com/css2?'),
     (".team .members li{animation", THREE_CSS + ".team .members li{animation"),
-    ("  // ---- events ----", open('src/three3d.js').read() + open('src/gg3d.js').read() + open('src/earth3d.js').read() + open('src/egg.js').read() + open('src/glkit.js').read() + open('src/feria3d.js').read() + open('src/tinder3d.js').read() + "\n  // ---- events ----"),
+    ("  // ---- events ----", open('src/three3d.js').read() + open('src/gg3d.js').read() + open('src/earth3d.js').read() + open('src/egg.js').read() + open('src/glkit.js').read() + open('src/feria3d.js').read() + open('src/tinder3d.js').read() + open('src/furious3d.js').read().replace('__FF_TORETTO__', 'data:image/jpeg;base64,' + __import__('base64').b64encode(open('ff_toretto.jpg','rb').read()).decode()).replace('__FF_PAUL__', 'data:image/jpeg;base64,' + __import__('base64').b64encode(open('ff_paul.jpg','rb').read()).decode()) + "\n  // ---- events ----"),
 ]
 for a, b in rep:
     assert s.count(a) == 1, a[:60]

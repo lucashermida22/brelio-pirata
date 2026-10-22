@@ -76,6 +76,7 @@
     mati:   { label:'Mati JoJo', variant:'mati', base:'jojo', title:'Mati ha elegido', winTitle:'¡Victoria de oro!', sub:'ゴ ゴ ゴ ゴ ゴ ゴ', btn:'Continuará ⟶', sound:'#ventoSound', soundAt:0, beat:441, upAt:1764, arenaAt:2646, cardsAt:1323, reveal:'impact', pops:['ゴ','ド','ゴ','!'], hold:14410 },
     feria:  { label:'Feria · Coches de choque', three:true, scene:'feria', title:'COCHES DE CHOQUE', winTitle:'¡CAMPEONES DE LA FERIA!', sub:'', btn:'Bajarse del coche', sound:'#choqueSound', soundAt:0, beat:372, pops:[], hold:4500 },
     tinder: { label:'Tinder', three:true, scene:'tinder', title:'brinder', winTitle:'brinder', sub:'', btn:'Cerrar la app', sound:'#drownSound', soundAt:0, beat:581, pops:[], hold:4500 },
+    furious: { label:'Fast & Furious', three:true, scene:'furious', title:'EL ÚLTIMO VIAJE', winTitle:'LA ÚLTIMA VICTORIA', sub:'los equipos de hoy', btn:'Nos vemos', sound:'#ffSound', soundAt:0, pops:[], hold:6000 },
     three:  { label:'Singularidad 3D', title:'SINGULARIDAD', winTitle:'SUPERNOVA', sub:'los equipos nacen de un agujero negro', btn:'Volver a la Tierra', sound:null, three:true, pops:[], hold:4200 },
   };
   const ANIM_KEYS = Object.keys(ANIMS);
@@ -300,8 +301,9 @@
     }
     ggPush = key === 'ggez' ? ggChat() : null;
     if (!win && A.scene === 'feria' && teams.length >= 2){ teams[0].name = 'Gitanos'; teams[1].name = 'Payos'; }
+    if (!win && A.scene === 'furious'){ const FF = ['Team Toretto', 'Team Paul', 'Team Letty', 'Team Roman', 'Team Tej', 'Team Han', 'Team Mia', 'Team Hobbs', 'Team Shaw', 'Team Gisele']; teams.forEach((t, i) => { t.name = FF[i] || 'Familia ' + (i + 1); }); }
     if (!win && A.scene === 'tinder'){ ['Matches ❤️', 'Nope 💔', 'Super likes ⭐', 'Bloqueados 🚫'].forEach((nm, i) => { if (teams[i]) teams[i].name = nm; }); }
-    if (A.three){ if (A.scene) layer.classList.add('gl'); (A.scene === 'feria' ? playFeria : A.scene === 'tinder' ? playTinder : playThree)(teams, A, win, opts); return; }
+    if (A.three){ if (A.scene) layer.classList.add('gl'); (A.scene === 'feria' ? playFeria : A.scene === 'tinder' ? playTinder : A.scene === 'furious' ? playFurious : playThree)(teams, A, win, opts); return; }
     if (gl3d){ playGG3D(teams, A, win); return; }
     if (key === 'bruh') bruh(1);
     if (key === 'jojo') later(impactFrame, 60);
