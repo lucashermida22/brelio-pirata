@@ -1,0 +1,8 @@
+/* ===== Onda de color (app/pulse) =====
+   El lienzo va fijo DETRÁS de todo el contenido (z-index -1 en el contexto de apilamiento raíz) y
+   encima del fondo blanco de la página: el texto queda siempre por encima. Solo se ve con una onda viva. */
+.pulse-cv{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100lvh;z-index:-1;pointer-events:none;visibility:hidden;contain:strict}
+.pulse-cv.on{visibility:visible}
+
+/* botones que no hacen nada (pero ahora hacen temblar todo): foco de teclado visible, como los demás */
+[data-pulse]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}

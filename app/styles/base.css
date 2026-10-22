@@ -36,8 +36,8 @@
   .logo-mark{width:18px;height:18px;border-radius:6px;background:var(--ink);position:relative}
   .logo-mark::after{content:"";position:absolute;inset:5px;border-radius:3px;background:#fff}
   .links{flex:1;display:flex;justify-content:center;gap:4px}
-  .links span{font-size:14px;font-weight:500;color:var(--text);padding:6px 12px;border-radius:8px;cursor:not-allowed;display:inline-flex;align-items:center;gap:4px}
-  .links span:hover{background:var(--well)}
+  .links .nav-dead{font-size:14px;font-weight:500;color:var(--text);padding:6px 12px;border:0;border-radius:8px;background:transparent;cursor:not-allowed;display:inline-flex;align-items:center;gap:4px}
+  .links .nav-dead:hover{background:var(--well)}
   .links svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2}
   @media (max-width:900px){.links{display:none}.nav .spacer{flex:1}}
   .nav-actions{display:flex;align-items:center;gap:8px}
@@ -147,6 +147,8 @@
   /* ---------- agenda / equipos ---------- */
   .crumbs{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);min-width:0}
   .crumbs strong{color:var(--ink);font-weight:500}
+  .crumb-link{padding:0;border:0;border-radius:4px;background:none;color:inherit;cursor:pointer;transition:color .18s ease}
+  .crumb-link:hover{color:var(--ink)}
   .crumbs svg{width:12px;height:12px;stroke:var(--grey);fill:none;stroke-width:2}
   .head-actions{display:flex;gap:6px}
   .btn-sm{height:30px;padding:0 10px;border-radius:var(--r-pill);border:1px solid var(--line);background:#fff;font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
@@ -158,6 +160,8 @@
   .team:hover{border-color:var(--line)}
   @keyframes pop{from{opacity:0;transform:translateY(6px)}}
   .appt{display:grid;grid-template-columns:56px 3px 1fr 16px;align-items:center;gap:12px;padding:12px 14px}
+  .appt[data-pulse]{cursor:pointer}
+  .appt[data-pulse]:focus-visible{outline-offset:-2px;border-radius:var(--r-card) var(--r-card) 0 0}
   .appt .time{font:600 15px/1.2 var(--f-head);font-variant-numeric:tabular-nums}
   .appt .time small{display:block;font:400 12px/1.4 var(--f-body);color:var(--muted)}
   .appt .bar{align-self:stretch;border-radius:3px}
@@ -191,6 +195,10 @@
 
   /* ---------- below stage ---------- */
   .stories{display:flex;justify-content:center;align-items:center;gap:10px;padding:28px 0 72px;font-size:14px;color:var(--text)}
+  .stories-link{display:inline-flex;align-items:center;gap:10px;margin:-6px -12px;padding:6px 12px;border:0;border-radius:999px;background:none;cursor:pointer;transition:color .18s ease,background .18s ease}
+  .stories-link:hover{color:var(--ink);background:var(--well)}
+  .stories-link .ext{display:inline-block;transition:transform .18s ease}
+  .stories-link:hover .ext{transform:translate(1px,-1px)}
   .faces{display:flex}
   .faces span{width:24px;height:24px;border-radius:999px;border:2px solid #fff;display:grid;place-items:center;font-size:9px;font-weight:600;color:#fff}
   .faces span + span{margin-left:-8px}

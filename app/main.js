@@ -8,6 +8,7 @@ import * as api from './api.js';
 import { loadAnimations, initRuntime, warmAll } from './versus/runtime.js';
 import { initUI, render, showTeams } from './ui.js';
 import { initRecursos, showRecursos } from './recursos.js';
+import { initPulse } from './pulse/index.js';
 
 // «Recursos» es una página más: #recursos. El resto es la agenda.
 function route() {
@@ -42,6 +43,7 @@ async function boot() {
   }
   initUI();
   initRecursos();
+  initPulse();   // la onda de color de los botones que no hacen nada
   addEventListener('hashchange', route);
   route();
   warmAll();

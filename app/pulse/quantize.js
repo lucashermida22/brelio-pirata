@@ -198,8 +198,8 @@ export function buildPalette(lists, { max = 6, min = 5 } = {}) {
     }
     if (pick.length >= min) break;
   }
-  // Sin nada aprovechable (fotos grises o ninguna): la de respaldo.
-  if (!pick.length) return fallbackPalette();
+  // Sin nada aprovechable (fotos grises o ninguna): vacía, y quien llama decide (otra fuente o la de respaldo)
+  if (!pick.length) return [];
   // Con pocas fotos (o una sola, toda rosa) se completa con vecinos análogos de lo que sí hay,
   // no con colores ajenos: mismo carácter, tonos a ±30–55° y algo de juego de luz.
   const base = pick.slice();
@@ -251,7 +251,7 @@ export function bakeGradient(palette, size = 128) {
   const out = new Uint8Array(size * 4), n = cols.length;
   for (let x = 0; x < size; x++) {
     const pos = (x / size) * n, i = Math.floor(pos) % n, j = (i + 1) % n;
-    const f = pos - Math.floor(pos), e = f * f * (3 - 2 * f), t = f + (e - f) * 0.7;
+    const f = pos - Math.floor(pos), e = f * f * (3 - 2 * f), t = f + (e - f) * 0.4;
     const A = cols[i], B = cols[j];
     const L = A.L + (B.L - A.L) * t;
     let a = A.a + (B.a - A.a) * t, b = A.b + (B.b - A.b) * t;

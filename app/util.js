@@ -28,6 +28,15 @@ export const ls = {
 
 export const bytes = (n) => n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(0) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
 
+// Se pregunta una sola vez: cada contexto de prueba cuenta para el límite del navegador (~16), y
+// al pasarse este tira el más viejo (que puede ser el de la onda o el de una animación en marcha)
+let glOK = null;
 export function webglOK() {
-  try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; }
+  if (glOK != null) return glOK;
+  try {
+    const c = document.createElement('canvas'), g = c.getContext('webgl2') || c.getContext('webgl');
+    glOK = !!g;
+    g?.getExtension('WEBGL_lose_context')?.loseContext();
+  } catch (e) { glOK = false; }
+  return glOK;
 }

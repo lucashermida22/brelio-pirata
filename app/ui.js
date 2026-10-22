@@ -62,7 +62,7 @@ export function showTeams(teams) {
     m += 60; while (m >= 60) { m -= 60; h++; }
     return `
       <article class="team${tm.winner ? ' won' : ''}" style="animation-delay:${i * 60}ms">
-        <div class="appt">
+        <div class="appt" data-pulse role="button" tabindex="0">
           <div class="time">${time}<small>50 min</small></div>
           <span class="bar" style="background:${tm.bar}"></span>
           <div>
