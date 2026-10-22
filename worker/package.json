@@ -1,0 +1,13 @@
+{
+  "name": "brelio-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --config ../wrangler.jsonc",
+    "test": "vitest run",
+    "db:local": "wrangler d1 execute brelio --local --config ../wrangler.jsonc --file ../schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.152.0"
+  }
+}
