@@ -1,80 +1,98 @@
 # Arquitectura: Brelio entre amigos
 
-> Estado: **propuesta**. Hoy Brelio es un único `index.html` generado por los scripts de `build/`.
+> **Propuesta.** Nada de esto está montado todavía. Hoy Brelio es un único `index.html` generado por los scripts de `build/` (animaciones en `src/`, canciones y fotos incrustadas en base64), y la lista de jugadores y las fotos asignadas viven en el `localStorage` de cada navegador.
 
 Brelio lo usamos y lo hacemos un grupo de amigos, así que el objetivo es **cero fricción**:
+
 - el **código** está en GitHub y cualquiera del grupo lo cambia sin pedir permiso;
-- los **recursos** (canciones, fotos, imágenes) se suben desde la propia web a **R2**, sin pasar por git ni por revisiones;
-- lo **compartido** (jugadores, fotos asignadas, historial de pachangas) vive en **D1**;
-- todo se despliega con **Cloudflare Workers**.
+- los **recursos** (canciones, fotos, imágenes, gifs, vídeos) se suben desde la propia web a **R2**, sin pasar por git ni por revisiones;
+- lo **compartido** (jugadores, fotos, historial de pachangas) vive en **D1**;
+- todo se despliega solo con **Cloudflare Workers**.
 
 ```
  GitHub (código) ──push──▶ Workers Builds ──▶ Worker "brelio"
-                                               ├─ sirve la web (static assets)
- Amigo en la web ──subir──▶ /api/media ───────▶ R2  (canciones, fotos, imágenes)
-                  ──jugar──▶ /api/*  ──────────▶ D1  (jugadores, pachangas, ganadores)
+   main  = producción                          ├─ sirve la web (static assets)
+   ramas = URL de preview                      ├─ /api/*    ──▶ D1  (jugadores, recursos, pachangas)
+                                               └─ /media/*  ──▶ R2  (canciones, fotos, gifs, vídeo)
+ Amigo en la web ──arrastra un fichero──▶ /api/media ──▶ R2 + apunta en D1
+
  Cloudflare Access delante de todo: solo entran los emails del grupo
 ```
 
 ## 1. Código en GitHub
 
-- Todos los amigos como **colaboradores** del repo, con permiso de escritura.
-- Cada uno trabaja en una rama; **Workers Builds** le da una URL de preview para enseñarlo al grupo.
-- Cuando le guste, lo mezcla él mismo en `main` → se despliega solo. Sin revisiones obligatorias.
+- Los amigos son **colaboradores** del repo, con permiso de escritura.
+- Cada uno trabaja en una rama; **Workers Builds** le da una URL de preview para enseñarla al grupo.
+- Cuando le gusta, la mezcla él mismo en `main` y se despliega sola. Sin revisiones.
 
-Para que no haya conflictos, cada animación es una carpeta independiente:
+Para que nadie se pise, cada animación es una carpeta independiente:
 
 ```
-app/                 # la web: generador de equipos, LOL, fotos, versus, botón «Ganador», página «Recursos»
+app/                  # la web: generador de equipos, LOL, versus, botón «Ganador», página «Recursos»
 animations/
-  furious/index.js   # export default { label, song, play(ctx) }
+  furious/index.js    # export default { label, song, play(ctx) }
   jojo/index.js
   …
-worker/index.js      # API + servir R2
-schema.sql           # tablas de D1
+worker/index.js       # API + servir R2
+schema.sql            # tablas de D1
 wrangler.jsonc
 ```
 
-Una animación solo necesita exportar esto:
+El selector de animaciones se genera solo con lo que haya en `animations/`. Añadir una animación es añadir una carpeta; no hay que tocar nada más.
+
+### El contrato de una animación
 
 ```js
 export default {
   label: 'Fast & Furious',
-  song: 'furious/last_ride.mp3',      // clave en R2: se cambia desde la web sin tocar código
+  song: 'furious/last_ride.mp3',   // clave en R2: se cambia desde «Recursos» sin tocar código
   async play(ctx) {
-    // ctx.teams, ctx.win, ctx.stage (<div>), ctx.three(), ctx.media('furious/paul.jpg'),
-    // ctx.song, ctx.later(fn, ms), ctx.onType('mati', fn), ctx.done(), ctx.close()
+    // ctx.teams            equipos ya repartidos (nombre, miembros, roles LOL, capitán)
+    // ctx.win              true si es la repetición solo con el ganador
+    // ctx.stage            <div> a pantalla completa donde pintar
+    // ctx.three()          Three.js listo para usar (escena, cámara, renderer)
+    // ctx.media(clave)     imagen/vídeo de R2 ya cargado: await ctx.media('furious/paul.jpg')
+    // ctx.song             el <audio> con la canción
+    // ctx.later(fn, ms)    setTimeout que se cancela solo al cerrar
+    // ctx.onType('mati', fn)  huevo de pascua: se dispara al teclear «mati»
+    // ctx.done()           revelado terminado (habilita «Ganador»)
+    // ctx.close()          cierra la animación
   },
 };
 ```
 
-El selector de animaciones se genera solo con lo que haya en `animations/`.
+La app se encarga de lo aburrido (limpiar al cerrar, música, tecla Esc, móvil). La animación solo cuenta su historia.
 
 ## 2. Recursos en R2 (sin revisión)
 
 Página **«Recursos»** dentro de la web:
-1. Arrastras un mp3, jpg, png, gif o webm.
-2. Eliges la carpeta (`furious`, `jugadores`, `comun`…), o la creas.
-3. Se sube al momento y te da la clave (`furious/last_ride.mp3`) con un botón de copiar, y una vista previa (se escucha o se ve).
+
+1. Arrastras un mp3, jpg, png, gif o webm (o varios a la vez).
+2. Eliges carpeta (`furious`, `jugadores`, `comun`…) o creas una.
+3. Se sube al momento y te da la clave (`furious/last_ride.mp3`) con botón de copiar y vista previa (se escucha o se ve).
 
 Además, en la lista de jugadores, **tocar un avatar → «Subir foto»** sube la foto a R2 y la deja asignada para todo el grupo.
 
-Cómo funciona por debajo:
-- `POST /api/media`: el Worker recibe el fichero, lo guarda en R2 con la clave `carpeta/nombre-abc12.ext` y apunta en D1 quién lo subió.
-- `GET /media/<clave>`: el Worker lo sirve desde R2, con caché larga.
+Las animaciones usan los recursos **por clave**. Si quieres otra canción, la subes y cambias la clave en `song`, o la reemplazas bajo la misma clave y no tocas el código.
+
+Por debajo:
+
+- `POST /api/media`: el Worker guarda el fichero en R2 (`carpeta/nombre-abc12.ext`) y apunta en D1 quién lo subió.
+- `GET /media/<clave>`: sirve desde R2 con caché larga.
 - `DELETE /api/media/<clave>`: cualquiera del grupo puede borrar o reemplazar.
 
-Nadie tiene que revisar nada: si alguien está dentro de la web, puede subir.
+Si estás dentro de la web, puedes subir. Nadie revisa nada.
 
-## 3. Quién puede entrar: Cloudflare Access
+## 3. Quién puede entrar
 
-- Una aplicación de Access delante del dominio, con la lista de emails del grupo.
-- Login con código de un solo uso al email: nada de contraseñas que repartir.
-- El Worker lee el email del usuario de la cabecera que añade Access, verificando el token `Cf-Access-Jwt-Assertion`. Así sabemos quién subió cada cosa o creó cada pachanga.
-- Desactivar la URL `*.workers.dev` para que no se pueda entrar sin pasar por Access.
+**Cloudflare Access**:
 
-> Alternativa aún más simple: una **clave del grupo** guardada como secreto del Worker y pedida una vez en la web.
-> Funciona, pero no sabes quién subió qué.
+- Una aplicación de Access delante del dominio con los emails del grupo.
+- Login con código de un solo uso por email: no hay contraseñas que repartir.
+- El Worker verifica la cabecera `Cf-Access-Jwt-Assertion` y saca el email, así sabe quién subió cada cosa o creó cada pachanga.
+- `workers_dev: false`, para que no se pueda entrar por la URL `*.workers.dev` saltándose Access.
+
+> Alternativa más simple: una **clave del grupo** guardada como secreto del Worker (`wrangler secret put GROUP_KEY`) y pedida una vez en la web. Funciona igual de bien para mantener fuera a extraños, pero no sabes quién subió qué.
 
 ## 4. Datos compartidos en D1
 
@@ -90,7 +108,7 @@ CREATE TABLE players (
 CREATE TABLE media (
   key         TEXT PRIMARY KEY,    -- carpeta/nombre-abc12.ext
   folder      TEXT,
-  type        TEXT,                -- audio/mpeg, image/jpeg…
+  type        TEXT,                -- audio/mpeg, image/jpeg, image/gif, video/webm…
   size        INTEGER,
   uploaded_by TEXT,
   created_at  INTEGER
@@ -99,25 +117,25 @@ CREATE TABLE matches (
   id         TEXT PRIMARY KEY,
   played_at  INTEGER,
   animation  TEXT,
-  teams      TEXT,                 -- JSON con equipos, miembros, roles LOL y capitanes
+  teams      TEXT,                 -- JSON: equipos, miembros, roles LOL, capitanes
   winner     INTEGER,              -- índice del equipo ganador (NULL si no se eligió)
   created_by TEXT
 );
 ```
 
-Qué ganamos:
-- la lista de jugadores y sus fotos es la misma para todos (hoy está en el `localStorage` de cada uno);
-- **historial**: quién ganó cada pachanga, rachas, quién es el que más pierde…;
-- la repetición del ganador se puede ver otro día desde el historial.
+Qué ganamos: la lista de jugadores y sus fotos es la misma para todos (hoy cada uno tiene la suya en `localStorage`), y un **historial**: quién ganó cada pachanga, rachas, quién pierde más… y se puede repetir la animación del ganador otro día.
 
-API mínima del Worker:
+### API del Worker
 
 | Ruta | Qué hace |
 |---|---|
 | `GET/POST/PATCH/DELETE /api/players` | jugadores y su foto |
-| `GET/POST/DELETE /api/media` | subir, listar y borrar recursos de R2 |
+| `GET /api/media` | listar recursos (por carpeta) |
+| `POST /api/media` | subir un recurso a R2 |
+| `DELETE /api/media/:clave` | borrar un recurso |
 | `GET /media/*` | servir recursos desde R2 |
-| `GET/POST /api/matches`, `PATCH /api/matches/:id` | guardar pachangas y marcar ganador |
+| `GET/POST /api/matches` | historial y guardar una pachanga |
+| `PATCH /api/matches/:id` | marcar ganador |
 
 ## 5. Configuración de Cloudflare
 
@@ -135,16 +153,20 @@ API mínima del Worker:
 }
 ```
 
-Pasos una sola vez:
+Pasos, una sola vez (los hace el dueño):
+
 1. `wrangler r2 bucket create brelio-media`
-2. `wrangler d1 create brelio` → `wrangler d1 execute brelio --remote --file schema.sql`
-3. Conectar el repo en **Workers Builds**: `main` → producción y ramas → previews.
+2. `wrangler d1 create brelio`, pegar el `database_id` en `wrangler.jsonc` y `wrangler d1 execute brelio --remote --file schema.sql`
+3. Conectar el repo en **Workers Builds**: `main` → producción, el resto de ramas → previews.
 4. Dominio propio + aplicación de **Access** con los emails del grupo.
 
 ## 6. Migración
 
-1. Montar Vite + Worker + R2 + D1 con la web tal cual está hoy.
-2. Subir las canciones y fotos actuales a R2 y los jugadores a D1. Quitarlas del repo, que es público.
-3. Página «Recursos» y subir foto desde el avatar.
-4. Pasar las animaciones a carpetas `animations/<id>/`, una a una.
-5. Historial de pachangas.
+1. Montar Worker + R2 + D1 con la web tal cual está hoy (el `index.html` pasa a ser `app/`, sin cambiar lo que hace).
+2. Subir a R2 las canciones y fotos actuales (`assets/*.mp3`, `p1…p8.jpg`, `ff_*.jpg`, `mati_*.jpg`) y los jugadores a D1. Quitarlas del repo, que es público, y dejar de incrustarlas en base64: la página deja de pesar ~5 MB y cada recurso baja solo cuando se usa.
+3. Una vez, al abrir la web, importar el `localStorage` actual (`brelio-assign`, `brelio-photos-extra`) a D1 para no perder las fotos ya asignadas.
+4. Página «Recursos» y subir foto desde el avatar.
+5. Pasar las animaciones a `animations/<id>/`, una a una, con el contrato de arriba.
+6. Historial de pachangas.
+
+Los pasos 4 a 6 se pueden hacer en cualquier orden, y por cualquiera del grupo.
