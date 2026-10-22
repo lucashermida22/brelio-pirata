@@ -1,103 +1,125 @@
-# Arquitectura propuesta: Brelio con animaciones de la comunidad
+# Arquitectura: Brelio entre amigos
 
-> Estado: **propuesta**. Hoy Brelio es un único `index.html` (~5,5 MB) generado por los scripts de `build/`.
-> Este documento describe a dónde queremos llegar para que cualquiera pueda aportar animaciones o ideas,
-> con **GitHub como única fuente de verdad** y **Cloudflare Workers** para el despliegue.
+> Estado: **propuesta**. Hoy Brelio es un único `index.html` generado por los scripts de `build/`.
 
-## Principios
-
-1. **Todo vive en GitHub**: código, canciones, imágenes, ideas (issues), revisiones (PR) y CI (Actions).
-   Cloudflare solo despliega lo que hay en el repo; nada se edita a mano fuera de él.
-2. **Una animación = una carpeta.** Quien contribuye solo toca `animations/<id>/`; el núcleo no sabe nada de ninguna animación concreta.
-3. **Carga bajo demanda.** Al abrir la web solo baja el núcleo; Three.js, canciones e imágenes de una animación bajan cuando se usa.
-4. **Cada PR se puede ver antes de mezclarse**, con su propia URL de preview.
-
-## Por qué cambiar
-
-| Hoy | Problema con más contribuidores |
-|---|---|
-| Un HTML con todo en base64 | 5,5 MB aunque solo uses una animación; diffs ilegibles |
-| `ANIMS` y la cadena de `if` que elige la escena, compartidos | Cada animación nueva toca los mismos ficheros → conflictos constantes |
-| Scripts de Python que parchean texto | Frágiles y difíciles de entender para gente nueva |
-
-## Estructura del repo
+Brelio lo usamos y lo hacemos un grupo de amigos, así que el objetivo es **cero fricción**:
+- el **código** está en GitHub y cualquiera del grupo lo cambia sin pedir permiso;
+- los **recursos** (canciones, fotos, imágenes) se suben desde la propia web a **R2**, sin pasar por git ni por revisiones;
+- lo **compartido** (jugadores, fotos asignadas, historial de pachangas) vive en **D1**;
+- todo se despliega con **Cloudflare Workers**.
 
 ```
-brelio-pirata/
-├─ app/                      # núcleo: UI de Brelio, generador de equipos, LOL, picker de fotos,
-│                            # overlay del versus, selector de animación, botón «Ganador»
-├─ sdk/                      # lo que el núcleo ofrece a las animaciones
-│   ├─ three.js              # glInit, bloom, faceCanvas, textCanvas, glowCanvas, heartGeo…
-│   ├─ audio.js              # synth(), canciones, retomar la canción en la repetición del ganador
-│   └─ types.d.ts            # el contrato (ver abajo)
-├─ animations/
-│   ├─ furious/
-│   │   ├─ manifest.json
-│   │   ├─ index.js          # export default { play(ctx) }
-│   │   ├─ assets/           # canción recortada, imágenes
-│   │   └─ preview.webp      # miniatura para el selector
-│   ├─ jojo/ mati/ tinder/ feria/ ggez/ cine/ kawaii/ bruh/ perreo/ singularidad/
-│   └─ _template/            # punto de partida para animaciones nuevas
-├─ lab/                      # página de desarrollo (equipos falsos, velocidad, saltar a un segundo)
-├─ worker/                   # Cloudflare Worker: assets estáticos + /api
-├─ docs/                     # este documento
-├─ .github/                  # plantillas de issues/PR, CODEOWNERS, workflows
-└─ wrangler.jsonc
+ GitHub (código) ──push──▶ Workers Builds ──▶ Worker "brelio"
+                                               ├─ sirve la web (static assets)
+ Amigo en la web ──subir──▶ /api/media ───────▶ R2  (canciones, fotos, imágenes)
+                  ──jugar──▶ /api/*  ──────────▶ D1  (jugadores, pachangas, ganadores)
+ Cloudflare Access delante de todo: solo entran los emails del grupo
 ```
 
-## El contrato de una animación
+## 1. Código en GitHub
+
+- Todos los amigos como **colaboradores** del repo, con permiso de escritura.
+- Cada uno trabaja en una rama; **Workers Builds** le da una URL de preview para enseñarlo al grupo.
+- Cuando le guste, lo mezcla él mismo en `main` → se despliega solo. Sin revisiones obligatorias.
+
+Para que no haya conflictos, cada animación es una carpeta independiente:
+
+```
+app/                 # la web: generador de equipos, LOL, fotos, versus, botón «Ganador», página «Recursos»
+animations/
+  furious/index.js   # export default { label, song, play(ctx) }
+  jojo/index.js
+  …
+worker/index.js      # API + servir R2
+schema.sql           # tablas de D1
+wrangler.jsonc
+```
+
+Una animación solo necesita exportar esto:
 
 ```js
-// animations/furious/index.js
 export default {
-  // opcional: renombrar equipos (Team Toretto / Team Paul…)
-  teamNames: (teams) => teams.map((t, i) => ['Team Toretto', 'Team Paul'][i] ?? t.name),
-
+  label: 'Fast & Furious',
+  song: 'furious/last_ride.mp3',      // clave en R2: se cambia desde la web sin tocar código
   async play(ctx) {
-    // ctx.teams      equipos: nombre, color, miembros {name, photo, role}, capitán…
-    // ctx.win        true si es la repetición del equipo ganador
-    // ctx.stage      <div> donde dibujar (el núcleo pone el contenedor y el botón de saltar)
-    // ctx.three()    carga Three.js bajo demanda y devuelve el kit (glInit, texturas, bloom)
-    // ctx.song       <audio> de la canción del manifest, ya posicionada (continúa en la del ganador)
-    // ctx.later(fn, ms) / ctx.onType('mati', fn)   timers y easter eggs que se limpian solos
-    // ctx.done()     muestra el botón final;  ctx.close() termina la animación
-    return () => { /* limpieza opcional */ };
+    // ctx.teams, ctx.win, ctx.stage (<div>), ctx.three(), ctx.media('furious/paul.jpg'),
+    // ctx.song, ctx.later(fn, ms), ctx.onType('mati', fn), ctx.done(), ctx.close()
   },
 };
 ```
 
-```json
-// animations/furious/manifest.json
-{
-  "id": "furious",
-  "label": "Fast & Furious",
-  "author": "lucashermida22",
-  "song": "assets/last_ride.mp3",
-  "songLoop": true,
-  "three": true,
-  "hold": 6000,
-  "tags": ["cine", "3d", "easter-egg"]
-}
+El selector de animaciones se genera solo con lo que haya en `animations/`.
+
+## 2. Recursos en R2 (sin revisión)
+
+Página **«Recursos»** dentro de la web:
+1. Arrastras un mp3, jpg, png, gif o webm.
+2. Eliges la carpeta (`furious`, `jugadores`, `comun`…), o la creas.
+3. Se sube al momento y te da la clave (`furious/last_ride.mp3`) con un botón de copiar, y una vista previa (se escucha o se ve).
+
+Además, en la lista de jugadores, **tocar un avatar → «Subir foto»** sube la foto a R2 y la deja asignada para todo el grupo.
+
+Cómo funciona por debajo:
+- `POST /api/media`: el Worker recibe el fichero, lo guarda en R2 con la clave `carpeta/nombre-abc12.ext` y apunta en D1 quién lo subió.
+- `GET /media/<clave>`: el Worker lo sirve desde R2, con caché larga.
+- `DELETE /api/media/<clave>`: cualquiera del grupo puede borrar o reemplazar.
+
+Nadie tiene que revisar nada: si alguien está dentro de la web, puede subir.
+
+## 3. Quién puede entrar: Cloudflare Access
+
+- Una aplicación de Access delante del dominio, con la lista de emails del grupo.
+- Login con código de un solo uso al email: nada de contraseñas que repartir.
+- El Worker lee el email del usuario de la cabecera que añade Access, verificando el token `Cf-Access-Jwt-Assertion`. Así sabemos quién subió cada cosa o creó cada pachanga.
+- Desactivar la URL `*.workers.dev` para que no se pueda entrar sin pasar por Access.
+
+> Alternativa aún más simple: una **clave del grupo** guardada como secreto del Worker y pedida una vez en la web.
+> Funciona, pero no sabes quién subió qué.
+
+## 4. Datos compartidos en D1
+
+```sql
+-- schema.sql
+CREATE TABLE players (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  photo_key  TEXT,                 -- clave en R2
+  created_by TEXT,
+  created_at INTEGER
+);
+CREATE TABLE media (
+  key         TEXT PRIMARY KEY,    -- carpeta/nombre-abc12.ext
+  folder      TEXT,
+  type        TEXT,                -- audio/mpeg, image/jpeg…
+  size        INTEGER,
+  uploaded_by TEXT,
+  created_at  INTEGER
+);
+CREATE TABLE matches (
+  id         TEXT PRIMARY KEY,
+  played_at  INTEGER,
+  animation  TEXT,
+  teams      TEXT,                 -- JSON con equipos, miembros, roles LOL y capitanes
+  winner     INTEGER,              -- índice del equipo ganador (NULL si no se eligió)
+  created_by TEXT
+);
 ```
 
-El núcleo construye el selector a partir de todos los `manifest.json` (en build) y carga cada animación con `import()` dinámico.
+Qué ganamos:
+- la lista de jugadores y sus fotos es la misma para todos (hoy está en el `localStorage` de cada uno);
+- **historial**: quién ganó cada pachanga, rachas, quién es el que más pierde…;
+- la repetición del ganador se puede ver otro día desde el historial.
 
-## Build y desarrollo
+API mínima del Worker:
 
-- **Vite**, con un trozo por animación; Three.js como dependencia npm (módulos ES) en un trozo compartido.
-- Assets como ficheros normales con hash en el nombre (caché larga), no base64.
-- `npm run new-anim <id>` → copia `animations/_template/` y la registra.
-- `npm run dev` → abre `lab/`: elegir animación, nº de equipos/personas, modo ganador, velocidad ×1/×5, saltar a un segundo.
-- Canciones y fotos se quedan **en el repo**. Si el peso crece, se pasan a **Git LFS**, que sigue en GitHub.
-
-## Despliegue: Cloudflare Workers
-
-| Pieza | Para qué |
+| Ruta | Qué hace |
 |---|---|
-| **Worker con Static Assets** (`assets.directory: "dist"`) | Sirve la web compilada; el código del Worker solo atiende `/api/*`. |
-| **Workers Builds conectado a este repo de GitHub** | Push a `main` → producción. Cada PR/rama → **URL de preview** para enseñar la animación antes de aprobarla. |
-| **Cloudflare Access** (opcional) | Limitar la web a los emails del grupo (hay fotos de personas reales). |
-| **D1** (opcional, fase 2) | Grupos, jugadores, asignación de fotos e historial de pachangas/ganadores compartidos (hoy en `localStorage`). |
+| `GET/POST/PATCH/DELETE /api/players` | jugadores y su foto |
+| `GET/POST/DELETE /api/media` | subir, listar y borrar recursos de R2 |
+| `GET /media/*` | servir recursos desde R2 |
+| `GET/POST /api/matches`, `PATCH /api/matches/:id` | guardar pachangas y marcar ganador |
+
+## 5. Configuración de Cloudflare
 
 ```jsonc
 // wrangler.jsonc
@@ -105,37 +127,24 @@ El núcleo construye el selector a partir de todos los `manifest.json` (en build
   "name": "brelio",
   "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./dist", "not_found_handling": "single-page-application", "run_worker_first": ["/api/*"] }
+  "workers_dev": false,
+  "assets": { "directory": "./dist", "run_worker_first": ["/api/*", "/media/*"] },
+  "r2_buckets":   [{ "binding": "MEDIA", "bucket_name": "brelio-media" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "brelio", "database_id": "<id>" }],
+  "vars": { "ACCESS_TEAM": "<equipo>.cloudflareaccess.com", "ACCESS_AUD": "<aud de la app de Access>" }
 }
 ```
 
-### `/api/ideas` → GitHub Issues
+Pasos una sola vez:
+1. `wrangler r2 bucket create brelio-media`
+2. `wrangler d1 create brelio` → `wrangler d1 execute brelio --remote --file schema.sql`
+3. Conectar el repo en **Workers Builds**: `main` → producción y ramas → previews.
+4. Dominio propio + aplicación de **Access** con los emails del grupo.
 
-Un botón «Proponer animación» dentro de la propia web manda el formulario al Worker, que crea un issue en este repo con la etiqueta `idea`, usando un token guardado como secreto de Cloudflare (`GITHUB_TOKEN`). Así quien no programa también aporta, y todas las ideas acaban en GitHub.
+## 6. Migración
 
-## Cómo se contribuye
-
-1. **Idea** → issue con la plantilla «Idea de animación» (o desde la web).
-2. **Código** → `npm run new-anim` → desarrollar en el lab → PR que solo toca `animations/<id>/`.
-3. **CI (GitHub Actions)** en cada PR:
-   - el `manifest.json` cumple el esquema;
-   - límite de tamaño por animación (p. ej. ≤ 3 MB);
-   - Playwright reproduce la animación (normal y ganador) y falla si hay errores en consola;
-   - capturas automáticas comentadas en el PR.
-4. **Preview** → Workers Builds comenta la URL de preview en el PR.
-5. **Revisión** → `CODEOWNERS`: `app/` y `sdk/` requieren aprobación del mantenedor; `animations/*` es más abierto.
-
-## Cuidado con lo que se sube
-
-El repo es **público**: fotos de amigos, canciones con copyright y fotogramas de películas quedan a la vista de cualquiera.
-- Solo fotos de personas que hayan dado permiso.
-- Recortes cortos de canciones (como ahora) y créditos en el `manifest.json`.
-- Valorar hacer el repo privado si el grupo crece; Workers Builds funciona igual con repos privados.
-
-## Migración por fases
-
-1. **Vite + Worker** con lo que hay hoy, sin cambiar comportamiento → producción y previews funcionando.
-2. **Extraer `sdk/`** (glkit, synth, timers, retomar canción) y el contrato `play(ctx)`.
-3. **Pasar las animaciones a plugins de una en una**: kawaii → bruh → perreo → cine → ggez → singularidad → jojo/mati → feria → tinder → furious.
-4. **Lab, plantilla, CI, `CONTRIBUTING.md` final.**
-5. Opcional: D1 (grupos e historial), `/api/ideas`, Access.
+1. Montar Vite + Worker + R2 + D1 con la web tal cual está hoy.
+2. Subir las canciones y fotos actuales a R2 y los jugadores a D1. Quitarlas del repo, que es público.
+3. Página «Recursos» y subir foto desde el avatar.
+4. Pasar las animaciones a carpetas `animations/<id>/`, una a una.
+5. Historial de pachangas.

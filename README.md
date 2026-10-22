@@ -23,6 +23,5 @@ Abre `index.html` en el navegador: es una sola página autocontenida (fotos, can
 - `assets/burst_fixed.jpg` — la foto principal ya girada.
 
 ## Contribuir
-- Ideas: abre un issue con la plantilla «Idea de animación».
-- Código: lee [`CONTRIBUTING.md`](CONTRIBUTING.md).
-- Hacia dónde vamos (animaciones como plugins + Cloudflare Workers): [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
+Cualquiera del grupo puede meter animaciones: mira [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Hacia dónde vamos (Cloudflare Workers + R2 para recursos + D1 para datos compartidos): [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
