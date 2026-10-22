@@ -23,6 +23,8 @@ uniform float uTime;     // s (mueve el campo de color)
 uniform float uFlow;     // 1 normal, 0 movimiento reducido (campo quieto)
 uniform float uYMin;     // luminancia mínima del fondo resultante (sobre blanco)
 uniform float uMaxA;     // tope de opacidad (para colores muy claros, que casi no oscurecen)
+uniform vec2 uScroll;    // desplazamiento de la página (el campo va pegado a la página, no a la ventana)
+uniform vec2 uOff;       // desplazamiento del campo en cada ráfaga (cada una, un dibujo distinto)
 uniform vec4 uA[${SLOTS}];   // xy origen (px CSS de la ventana), z radio del frente, w ancho del borde
 uniform vec4 uB[${SLOTS}];   // x relleno, y cresta, z radio del hueco central, w giro (rad)
 uniform vec4 uC[${SLOTS}];   // x semilla, y fila de paleta (v), z alcance, w expansión del campo
@@ -83,11 +85,11 @@ void main() {
   // Campo de color común a todas las ondas (así, si se solapan, coinciden): ruido simplex con el
   // dominio deformado, manchas grandes y lentas; w también modula la densidad (nubes más o menos llenas)
   float t = uTime * uFlow;
-  vec2 q = s / 820.0;
-  vec2 w = vec2(snoise(q * 0.9 + vec2(1.7, 9.2 + 0.1 * t)), snoise(q * 0.9 + vec2(8.3 - 0.08 * t, 2.8)));
-  vec2 qq = q + w * 0.48 + vec2(0.05 * t, -0.04 * t);
+  vec2 q = (s + uScroll) / 980.0 + uOff;
+  vec2 w = vec2(snoise(q * 0.85 + vec2(1.7, 9.2 + 0.1 * t)), snoise(q * 0.85 + vec2(8.3 - 0.08 * t, 2.8)));
+  vec2 qq = q + w * 0.38 + vec2(0.05 * t, -0.04 * t);
   float n1 = snoise(qq);
-  float n = 0.74 * n1 + 0.26 * snoise(ROT * qq * 2.03 + 4.1);
+  float n = 0.8 * n1 + 0.2 * snoise(ROT * qq * 2.03 + 4.1);
 
   vec3 accC = vec3(0.0);
   float accW = 0.0, keep = 1.0, glint = 0.0;
@@ -112,7 +114,7 @@ void main() {
     glint = max(glint, B.y * exp(-xg * xg) * hol);
     // coordenada de paleta: el campo + un giro lento alrededor del clic + bandas que salen con el frente
     float ang = atan(v.y, v.x);
-    float u = C.x + n * 0.27 + 0.05 * sin(ang + B.w * 1.4 + 2.0 * n) + (R - d) / 3200.0 + B.w * 0.05;
+    float u = C.x + n * 0.22 + 0.06 * sin(ang + B.w * 1.4 + 1.5 * n) + (R - d) / 4200.0 + B.w * 0.05;
     vec3 col = texture2D(uPal, vec2(u, C.y)).rgb;
     vec3 colC = texture2D(uPal, vec2(u + 0.11, C.y)).rgb;
     float Ii = clamp(I + crest * 0.45, 0.0, 1.0);
@@ -200,7 +202,7 @@ export function createGLRenderer(canvas, { allowSoftware = false } = {}) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   loc = {};
-  ['uRes', 'uPx', 'uTime', 'uFlow', 'uYMin', 'uMaxA', 'uA', 'uB', 'uC', 'uPal'].forEach((k) => { loc[k] = gl.getUniformLocation(prog, k); });
+  ['uRes', 'uPx', 'uTime', 'uFlow', 'uYMin', 'uMaxA', 'uScroll', 'uOff', 'uA', 'uB', 'uC', 'uPal'].forEach((k) => { loc[k] = gl.getUniformLocation(prog, k); });
   gl.uniform1i(loc.uPal, 0);
   gl.disable(gl.BLEND);
   gl.disable(gl.DEPTH_TEST);
@@ -223,7 +225,7 @@ export function createGLRenderer(canvas, { allowSoftware = false } = {}) {
       gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, slot, 256, 1, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
     },
     // waves: [{ slot, x, y, r, f, fill, rim, hollow, twist, seed, reach, zoom }]
-    draw(waves, { time, flow, yMin, maxA }) {
+    draw(waves, { time, flow, yMin, maxA, scroll = [0, 0], offset = [0, 0] }) {
       A.fill(0); B.fill(0); C.fill(0);
       for (const w of waves) {
         const o = w.slot * 4;
@@ -238,6 +240,8 @@ export function createGLRenderer(canvas, { allowSoftware = false } = {}) {
       gl.uniform1f(loc.uFlow, flow);
       gl.uniform1f(loc.uYMin, yMin);
       gl.uniform1f(loc.uMaxA, maxA);
+      gl.uniform2f(loc.uScroll, scroll[0], scroll[1]);
+      gl.uniform2f(loc.uOff, offset[0], offset[1]);
       gl.uniform4fv(loc.uA, A); gl.uniform4fv(loc.uB, B); gl.uniform4fv(loc.uC, C);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       clean = false;

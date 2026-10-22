@@ -4,5 +4,6 @@
 .pulse-cv{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100lvh;z-index:-1;pointer-events:none;visibility:hidden;contain:strict}
 .pulse-cv.on{visibility:visible}
 
-/* botones que no hacen nada (pero ahora hacen temblar todo): foco de teclado visible, como los demás */
+/* botones que no hacen nada (pero ahora hacen temblar todo): se pueden pulsar y el foco de teclado se ve, como en los demás */
+[data-pulse]{cursor:pointer;-webkit-tap-highlight-color:transparent}
 [data-pulse]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}

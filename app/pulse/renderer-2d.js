@@ -71,6 +71,7 @@ export function create2DRenderer(canvas) {
       clean = false;
     },
     clear() { if (!clean) { g.clearRect(0, 0, W, H); clean = true; } },
+    sleep() { if (canvas.width !== 1) { canvas.width = canvas.height = off.width = off.height = 1; W = H = 1; clean = true; } },
     warm() {},
     destroy() {},
   };

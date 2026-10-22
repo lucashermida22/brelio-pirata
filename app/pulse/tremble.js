@@ -17,12 +17,14 @@ const LEAVES = [
   '.stories-link', 'footer .row > span',
   '.rlist > .rrow', '.upl > .urow',
 ].join(',');
+// Los bloques van unos dentro de otros (escenario › tarjeta › sección › botón) y los temblores se
+// suman: por eso los de fuera mueven poco; lo de dentro, con su propio retraso, remata la cascada.
 const KINDS = [
-  { sel: '.stage', a: 1.3, r: 0.04, s: 0.0012, f: 3.0, d: 940 },
-  { sel: '.card', a: 1.6, r: 0.1, s: 0.0025, f: 3.6, d: 860 },
-  { sel: '.section, .team, .placeholder, .drop', a: 1.5, r: 0.16, s: 0.003, f: 4.2, d: 780 },
-  { sel: '.hero h1 .w', a: 3.0, r: 0.8, s: 0.012, f: 4.6, d: 760 },
-  { sel: LEAVES, a: 2.4, r: 0.42, s: 0.009, f: 5.2, d: 680 },
+  { sel: '.stage', a: 1.0, r: 0.035, s: 0.001, f: 3.0, d: 940 },
+  { sel: '.card', a: 1.4, r: 0.09, s: 0.002, f: 3.6, d: 860 },
+  { sel: '.section, .team, .placeholder, .drop', a: 1.5, r: 0.14, s: 0.0026, f: 4.2, d: 780 },
+  { sel: '.hero h1 .w', a: 3.4, r: 0.75, s: 0.011, f: 4.6, d: 760 },
+  { sel: LEAVES, a: 3.0, r: 0.4, s: 0.008, f: 5.2, d: 680 },
 ];
 const MAX_ELEMENTS = 72;
 const SAMPLES = 30;
@@ -44,6 +46,7 @@ function detect() {
 }
 
 const f3 = (v) => Math.round(v * 1000) / 1000;
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const frameOf = (x, y, r, s) => (support === 'add'
   ? { transform: `translate(${f3(x)}px, ${f3(y)}px) rotate(${f3(r)}deg) scale(${f3(1 + s)})` }
   : { translate: `${f3(x)}px ${f3(y)}px`, rotate: `${f3(r)}deg`, scale: `${f3(1 + s)}` });
@@ -92,11 +95,11 @@ export function shake(x, y, damp = 1) {
   let ux = innerWidth / 2 - x, uy = innerHeight / 2 - y;
   const l = Math.hypot(ux, uy);
   if (l < 40) { ux = 0; uy = 1; } else { ux /= l; uy /= l; }
-  const k = { f: 15, d: 190 };
+  const k = { f: 13, d: 230 };
   ['header', '.shell'].forEach((sel) => {
     const el = document.querySelector(sel);
     if (!el || el._pulseN > 1) return;
-    track(el.animate(springFrames(k, ux, uy, 1.4 * damp, 0, 0), { duration: k.d, easing: 'linear', composite: support === 'add' ? 'add' : 'replace' }), t0, el);
+    track(el.animate(springFrames(k, ux, uy, 1.8 * damp, 0, 0), { duration: k.d, easing: 'linear', composite: support === 'add' ? 'add' : 'replace' }), t0, el);
   });
 }
 
@@ -119,10 +122,15 @@ export function tremble(x, y, g, { source = null, damp = 1 } = {}) {
     const r = it.el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1 || r.bottom < -M || r.top > vh + M || r.right < -M || r.left > vw + M) continue;
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    measured.push({ ...it, cx, cy, d: Math.hypot(cx - x, cy - y) });
+    // el frente «llega» a un bloque cuando lo toca: su punto más cercano (de la parte visible; con
+    // un poco de camino hacia el centro). En los grandes (escenario, tarjetas) cambia mucho.
+    const L = Math.max(r.left, -M), T = Math.max(r.top, -M), Rr = Math.min(r.right, vw + M), B = Math.min(r.bottom, vh + M);
+    const near = Math.hypot(clamp(x, L, Rr) - x, clamp(y, T, B) - y);
+    const dc = Math.hypot(cx - x, cy - y);
+    measured.push({ ...it, cx, cy, d: dc, hit: near + 0.25 * (Math.min(dc, near + 400) - near) });
   }
-  measured.sort((a, b) => a.d - b.d);
-  // 2) escribir: una animación por bloque, con su retraso = cuando el frente pasa por su centro
+  measured.sort((a, b) => a.hit - b.hit);
+  // 2) escribir: una animación por bloque, con su retraso = cuando el frente lo alcanza
   const src = source && (source.closest('button, a, [role="button"], .chip') || source);
   if (src) bump(src, t0, damp);
   let n = 0;
@@ -130,16 +138,16 @@ export function tremble(x, y, g, { source = null, damp = 1 } = {}) {
     if (n >= MAX_ELEMENTS) break;
     if (src && (m.el === src || src.contains(m.el))) continue;
     if (m.el._pulseN > 1) continue;                     // ya lleva dos temblores encima: basta
-    const { el, k, d } = m;
+    const { el, k } = m;
     let ux = m.cx - x, uy = m.cy - y;
     const l = Math.hypot(ux, uy);
     if (l < 1) { ux = 0; uy = 1; } else { ux /= l; uy /= l; }
-    const prox = 0.35 + 0.65 * Math.exp(-d / (0.42 * g.reach));
+    const prox = 0.5 + 0.5 * Math.exp(-m.hit / (0.45 * g.reach));   // cerca del clic, más fuerte
     const jitter = 0.85 + 0.3 * Math.random();
     const amp = k.a * prox * damp * jitter;
     const rot = k.r * prox * damp * (2 * ux * uy + 0.25 * (Math.random() - 0.5));
     const scl = k.s * prox * damp;
-    const delay = arrival(g, d) + (Math.random() - 0.5) * 14;
+    const delay = arrival(g, m.hit) + (Math.random() - 0.5) * 14;
     const a = el.animate(springFrames(k, ux, uy, amp, rot, scl), {
       duration: k.d, delay: Math.max(0, delay), easing: 'linear', composite: support === 'add' ? 'add' : 'replace',
     });
@@ -156,7 +164,7 @@ export function stopTrembles() {
 
 // Depuración: lleva todos los temblores al instante t del reloj (modo manual)
 export function seekTrembles(t) {
-  running.forEach((a) => { try { a.currentTime = Math.max(0, t - a._t0); } catch (e) { /* nada */ } });
+  running.forEach((a) => { try { a.pause(); a.currentTime = Math.max(0, t - a._t0); } catch (e) { /* nada */ } });
 }
 
 export const trembleCount = () => running.size;

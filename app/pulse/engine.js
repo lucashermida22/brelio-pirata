@@ -1,6 +1,7 @@
 // Motor de la onda: un único lienzo fijo detrás del contenido, los huecos de las ondas, el reloj y
 // el bucle de pintado. Solo pinta mientras hay alguna onda viva; después limpia, oculta el lienzo y
-// se duerme. Elige WebGL y, si no hay (o solo hay WebGL por software), el respaldo 2D.
+// se duerme (lienzo a 1×1: no ocupa memoria). Elige WebGL y, si no hay (o solo hay WebGL por
+// software), el respaldo 2D.
 import { SLOTS, LIVE, RETIRE_MS, geometry, radiusAt, featherAt, envelope, lifeOf, smooth } from './wave.js';
 import { createGLRenderer } from './renderer-gl.js';
 import { create2DRenderer } from './renderer-2d.js';
@@ -18,16 +19,18 @@ export const cfg = {
   allowSoftwareGL: false,   // depuración/pruebas: aceptar WebGL por software (SwiftShader)
   yMin: 0.72,               // luminancia del fondo a intensidad máxima (nunca más oscuro: el texto se lee siempre)
   maxA: 0.72,               // tope de opacidad (solo cuenta en colores muy claros, que casi no oscurecen)
-  scaleCap: 1.25,           // tope de resolución del lienzo (px de lienzo por px CSS)
-  pixelBudget: 2.6e6,       // y de píxeles totales
+  scaleCap: 1,              // tope de resolución del lienzo (px de lienzo por px CSS: todo es difuso, más no se nota)
+  pixelBudget: 1.8e6,       // y de píxeles totales
   adaptive: true,           // baja la resolución si los fotogramas van lentos
 };
 
+const SLEEP_MS = 1500;      // tras la última onda, el lienzo se encoge a 1×1
+
 let canvas = null, renderer = null, broken = false;
-let raf = 0, visible = false;
+let raf = 0, visible = false, sleepT = 0;
 let cssW = 0, cssH = 0, sized = false;
 let quality = 1, frames = [], lastFrame = 0;
-let seedN = 0;
+let seedN = 0, epoch = 0, offset = [0, 0];
 const waves = [];   // { slot, t0, docX, docY, g, palette, reduced, seed, retireAt }
 
 const rafFn = (f) => requestAnimationFrame(f);
@@ -36,7 +39,8 @@ function makeCanvas() {
   const c = document.createElement('canvas');
   c.className = 'pulse-cv';
   c.setAttribute('aria-hidden', 'true');
-  c.addEventListener('webglcontextlost', () => { if (renderer && renderer.kind === 'webgl') broken = true; });
+  c.width = c.height = 1;
+  c.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (renderer && renderer.kind === 'webgl') broken = true; });
   document.body.prepend(c);
   return c;
 }
@@ -56,6 +60,7 @@ function ensureRenderer() {
     renderer = create2DRenderer(canvas);
   }
   sized = false;
+  visible = false;
   waves.forEach((w) => { w.uploaded = false; });
   return renderer;
 }
@@ -71,12 +76,17 @@ function resize() {
 }
 addEventListener('resize', () => { sized = false; if (waves.length) resize(); });
 
+function sleepSoon() {
+  clearTimeout(sleepT);
+  sleepT = setTimeout(() => { if (!waves.length && renderer) { renderer.sleep(); sized = false; } }, SLEEP_MS);
+}
+
 // Prepara lienzo y shader cuando el navegador está libre (la primera onda no espera a compilar)
 export function warm() {
   const r = ensureRenderer();
   if (!r) return null;
-  if (!sized) resize();
   try { r.warm(); r.clear(); } catch (e) { /* nada */ }
+  if (!waves.length) sleepSoon();
   return r.kind;
 }
 
@@ -88,8 +98,15 @@ export const liveCount = () => waves.filter((w) => w.retireAt == null).length;
 export function addWave({ x, y, palette, reduced = false, seed }) {
   const r = ensureRenderer();
   if (!r) return null;
+  clearTimeout(sleepT);
   if (!sized) resize();
   const now = clock.now();
+  // ráfaga nueva (no quedaba ninguna): el reloj del campo vuelve a cero (precisión en GPUs con
+  // floats cortos) y el campo se mueve a otro sitio (cada ráfaga, un dibujo distinto)
+  if (!waves.length) {
+    epoch = now;
+    offset = clock.manual ? [3.1 + seedN * 7.7, 1.3 + seedN * 3.9] : [Math.random() * 20, Math.random() * 20];
+  }
   // más de LIVE vivas: la más vieja se despide deprisa
   const live = waves.filter((w) => w.retireAt == null).sort((a, b) => a.t0 - b.t0);
   for (let i = 0; i <= live.length - LIVE; i++) live[i].retireAt = now;
@@ -147,11 +164,15 @@ export function render() {
     });
   }
   if (!list.length) {
-    renderer.clear();
+    if (!broken) renderer.clear();
     if (visible && canvas) { canvas.classList.remove('on'); visible = false; }
+    sleepSoon();
     return false;
   }
-  renderer.draw(list, { time: now / 1000, flow: list.every((w) => !w.reduced) ? 1 : 0, yMin: cfg.yMin, maxA: cfg.maxA });
+  renderer.draw(list, {
+    time: (now - epoch) / 1000, flow: list.every((w) => !w.reduced) ? 1 : 0, yMin: cfg.yMin, maxA: cfg.maxA,
+    scroll: [scrollX, scrollY], offset,
+  });
   return true;
 }
 

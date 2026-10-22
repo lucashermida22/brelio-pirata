@@ -54,7 +54,7 @@ function onClick(e) {
 
 // Los <button> ya convierten Enter/Espacio en click; los demás (role="button", enlaces) se ayudan aquí
 function onKey(e) {
-  if ((e.key !== 'Enter' && e.key !== ' ') || e.repeat || overlayOpen()) return;
+  if ((e.key !== 'Enter' && e.key !== ' ') || e.repeat || e.altKey || e.ctrlKey || e.metaKey || overlayOpen()) return;
   const el = e.target instanceof Element ? e.target.closest('[data-pulse]') : null;
   if (!el || el !== e.target || el.matches('button, input, select, textarea, summary')) return;
   if (e.key === 'Enter' && el.matches('a[href]')) return;   // el Enter de un enlace ya hace click
@@ -89,8 +89,9 @@ export function initPulse() {
       cfg: engine.cfg,
       renderer: () => engine.warm() && engine.rendererKind(),
       timeScale: (s) => engine.clock.setScale(s),
-      // tiempo a mano: hold() congela, seek(ms) va a ese instante de la última onda (dibujo + temblor)
-      hold: () => engine.setManual(true),
+      // tiempo a mano: hold() congela (también los temblores en marcha), seek(ms) va a ese instante
+      // de la última onda (dibujo + temblor), release() vuelve al reloj de verdad
+      hold: () => { engine.setManual(true); seekTrembles(engine.clock.t); },
       seek: (ms) => { const t = lastT0 + ms; engine.seek(t); seekTrembles(t); return { live: engine.isActive(), trembles: trembleCount() }; },
       release: () => { stopTrembles(); engine.setManual(false); },
       active: () => engine.isActive(),
