@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --config ../wrangler.jsonc",
+    "dev": "wrangler dev --config ../wrangler.jsonc --persist-to .wrangler/state",
     "test": "vitest run",
-    "db:local": "wrangler d1 execute brelio --local --config ../wrangler.jsonc --file ../schema.sql"
+    "db:local": "wrangler d1 execute brelio --local --persist-to .wrangler/state --config ../wrangler.jsonc --file ../schema.sql"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.7",

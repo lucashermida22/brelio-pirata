@@ -15,7 +15,13 @@ export function authMode(env) {
 // Devuelve { user, mode } o lanza HttpError(401)
 export async function authenticate(request, env) {
   const mode = authMode(env);
-  if (mode === 'dev') return { user: 'dev', mode };
+  if (mode === 'dev') {
+    // Seguridad: sin configurar, solo se abre en local. En producción hay que poner AUTH_MODE="dev" a propósito.
+    const host = new URL(request.url).hostname;
+    const explicit = (env.AUTH_MODE || '').trim().toLowerCase() === 'dev';
+    if (!explicit && host !== 'localhost' && host !== '127.0.0.1') throw new HttpError(401, 'Servidor sin autenticación configurada (Access o GROUP_KEY)');
+    return { user: 'dev', mode };
+  }
 
   if (mode === 'key') {
     if (!env.GROUP_KEY) throw new HttpError(401, 'Servidor sin GROUP_KEY configurada');

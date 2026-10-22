@@ -1,0 +1,8 @@
+// Config solo para los tests (sin assets): D1 y R2 locales en memoria
+{
+  "name": "brelio-test",
+  "main": "./index.js",
+  "compatibility_date": "2026-10-01",
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "brelio-media" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "brelio", "database_id": "00000000-0000-0000-0000-000000000000" }]
+}
