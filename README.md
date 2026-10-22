@@ -53,6 +53,7 @@ app/                    la web
   versus/runtime.js     lo aburrido: cargar animaciones, música, limpiar al cerrar, Esc, huevos de pascua
   versus/dom.js         flujo común de las animaciones «de DOM» (kawaii, cine, bruh…)
   versus/kit.js         utilidades compartidas: lienzos, sonido sintetizado, base Three.js
+  pulse/                el pulso de color de los botones que no hacen nada (ver abajo)
   styles/               CSS de la página
 animations/<id>/        una carpeta por animación (index.js + style.css + lo que necesite)
 media/                  canciones e imágenes (NO van en dist/; se suben a R2)
@@ -137,6 +138,16 @@ npm run upload-media -- --dry-run   # ver qué subiría
 npm run upload-media                # subir (R2 + apunta en D1 para que salga en «Recursos»)
 npm run upload-media -- furious     # solo claves que empiecen por «furious»
 ```
+
+## El pulso de color
+
+Los botones de mentira (Productos, Soluciones, Clientes, Precios, Iniciar sesión, Reservar demo, las chips de «Foco de trabajo», las migas «Sesiones» y «Recursos», las filas de la agenda e «Historias reales…») lanzan una onda desde el punto del clic (con Enter o Espacio, desde el centro del botón): el fondo de la página se llena con los colores de las fotos de la gente y la interfaz tiembla al paso del frente. Los controles de verdad no la lanzan nunca.
+
+- **Marcar otro botón muerto**: ponle `data-pulse` (si no es un `<button>`, también `role="button" tabindex="0"`). Hay un solo oyente para todos; no hace falta tocar nada más.
+- **Paleta**: sale de las fotos de los jugadores (si nadie tiene, de las subidas a `jugadores/`, y si tampoco, de las de ejemplo). Se calcula fuera del hilo principal (worker, OKLab y k-means), elige 5–6 colores vivos y separados, se guarda en `localStorage` por conjunto de fotos y se recalcula cuando cambian.
+- **Piezas** (`app/pulse/`): `index.js` (entrada y oyente) · `palette.js`, `palette.worker.js`, `quantize.js` (paleta) · `engine.js`, `renderer-gl.js`, `renderer-2d.js` (dibujo: shader WebGL detrás del contenido, o respaldo 2D) · `wave.js` (la física que comparten el dibujo y el temblor) · `tremble.js` (temblor) · `pulse.css`.
+- Con `prefers-reduced-motion` solo hay un fundido de color; con la animación de equipos abierta no se lanza; sin GPU (WebGL por software) usa el respaldo 2D.
+- **Probar**: `window.__lerelioPulse.pulse(x, y)` y `await window.__lerelioPulse.palette()`. Para capturar fotogramas exactos: `debug.hold()`, clic, `debug.seek(ms)` y `debug.release()`; con `window.__lerelioPulseConfig = { allowSoftwareGL: true }` antes de cargar, el shader funciona también con SwiftShader (Playwright).
 
 ## Contribuir
 
