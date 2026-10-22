@@ -159,6 +159,14 @@ function compile(gl, type, src) {
   return s;
 }
 
+function isSoftware(gl) {
+  try {
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    const name = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || '');
+    return /swiftshader|llvmpipe|softpipe|software|basic render driver/i.test(name);
+  } catch (e) { return false; }
+}
+
 // Crea el pintor sobre `canvas`. Devuelve null si no hay WebGL (o si solo hay WebGL por
 // software y no se ha pedido expresamente: entonces va mejor el respaldo 2D).
 export function createGLRenderer(canvas, { allowSoftware = false } = {}) {
@@ -169,6 +177,13 @@ export function createGLRenderer(canvas, { allowSoftware = false } = {}) {
   let gl = null;
   try { gl = canvas.getContext('webgl', attrs) || canvas.getContext('experimental-webgl', attrs); } catch (e) { gl = null; }
   if (!gl) return null;
+  // failIfMajorPerformanceCaveat no siempre basta: Chrome sin GPU sigue dando WebGL por software
+  // (SwiftShader), y un shader a pantalla completa así tarda cientos de ms por fotograma y frena la
+  // página entera. Si el propio contexto dice que es software, mejor el respaldo 2D.
+  if (!allowSoftware && isSoftware(gl)) {
+    try { gl.getExtension('WEBGL_lose_context')?.loseContext(); } catch (e) { /* nada */ }
+    return null;
+  }
 
   let prog, buf, tex, loc;
   try {

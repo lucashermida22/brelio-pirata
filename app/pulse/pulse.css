@@ -7,3 +7,6 @@
 /* botones que no hacen nada (pero ahora hacen temblar todo): se pueden pulsar y el foco de teclado se ve, como en los demás */
 [data-pulse]{cursor:pointer;-webkit-tap-highlight-color:transparent}
 [data-pulse]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* cada bloque, en su propia capa mientras tiembla (ver tremble.js): moverlo no lo vuelve a pintar */
+.pulse-lift{will-change:transform}

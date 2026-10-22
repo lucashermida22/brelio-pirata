@@ -29,7 +29,7 @@ export function pulse(x, y, { source = null } = {}) {
   const g = engine.addWave({ x, y, palette: palettes.current(), reduced });
   if (!g) return false;
   lastT0 = now;
-  if (!reduced) {
+  if (!reduced && engine.cfg.tremble) {
     // con varias ondas encima, cada temblor nuevo suma menos (nunca se desmadra)
     const damp = 1 / (1 + 0.45 * (engine.liveCount() - 1));
     shake(x, y, damp);

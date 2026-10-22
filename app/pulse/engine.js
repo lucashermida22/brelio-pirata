@@ -22,6 +22,8 @@ export const cfg = {
   scaleCap: 1,              // tope de resolución del lienzo (px de lienzo por px CSS: todo es difuso, más no se nota)
   pixelBudget: 1.8e6,       // y de píxeles totales
   adaptive: true,           // baja la resolución si los fotogramas van lentos
+  tremble: true,            // la interfaz tiembla al paso del frente (depuración: false para medir sin él)
+  renderer: null,           // depuración: '2d' fuerza el respaldo
 };
 
 const SLEEP_MS = 1500;      // tras la última onda, el lienzo se encoge a 1×1
@@ -46,13 +48,14 @@ function makeCanvas() {
 }
 
 function ensureRenderer() {
+  if (renderer && cfg.renderer === '2d' && renderer.kind !== '2d' && !waves.length) broken = true;   // cambio a 2D entre ráfagas
   if (renderer && !broken && !renderer.lost()) return renderer;
   // contexto perdido (el navegador expulsa el más viejo si hay demasiados): lienzo nuevo
   if (renderer) { renderer.destroy(); renderer = null; }
   if (canvas) { canvas.remove(); canvas = null; }
   broken = false;
   canvas = makeCanvas();
-  renderer = createGLRenderer(canvas, { allowSoftware: cfg.allowSoftwareGL });
+  renderer = cfg.renderer === '2d' ? null : createGLRenderer(canvas, { allowSoftware: cfg.allowSoftwareGL });
   if (!renderer) {
     // un lienzo que ya pidió contexto webgl no puede dar uno 2D: otro lienzo
     canvas.remove();
@@ -188,6 +191,8 @@ function frame(ts) {
       const avg = frames.reduce((s, v) => s + v, 0) / frames.length;
       frames = [];
       if (avg > 24 && quality > 0.5) { quality = Math.max(0.5, quality * 0.8); resize(); }
+      // ni a la mitad de resolución va fluido (GPU muy justa): las próximas ondas, con el respaldo 2D
+      else if (avg > 45 && renderer.kind === 'webgl') cfg.renderer = '2d';
     }
   }
   lastFrame = ts;
