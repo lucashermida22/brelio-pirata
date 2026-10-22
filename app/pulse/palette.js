@@ -9,7 +9,7 @@ import { photoLibrary } from '../picker.js';
 import { ls } from '../util.js';
 import { analyzePixels, buildPalette, bakeGradient, fallbackPalette } from './quantize.js';
 
-const LS_KEY = 'brelio-pulse-v1';
+const LS_KEY = 'brelio-pulse-v2';   // cambia si cambia el algoritmo (lo guardado deja de valer)
 const SIZE = 56;            // las fotos se analizan reducidas a 56×56
 const MAX_PHOTOS = 24;      // con más gente, una muestra repartida
 const MAX_SWATCHES = 96;    // fotos recordadas en localStorage

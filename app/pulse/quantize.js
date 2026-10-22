@@ -137,8 +137,9 @@ export function analyzePixels(data, width, height, { k = 8, seed = 0x5eed } = {}
 
 // ---------- de muchas fotos a una paleta ----------
 const hueDist = (h1, h2) => { const d = Math.abs(h1 - h2) % TAU; return d > Math.PI ? TAU - d : d; };
-// piel: tonos anaranjados de croma moderado (los naranjas vivos de verdad no cuentan)
-const isSkin = (L, C, h) => h > 0.42 && h < 1.5 && C < 0.135 && L > 0.38 && L < 0.9;
+// piel: tonos anaranjados de croma moderado, ≈26°–76° (los naranjas vivos de verdad no cuentan, y
+// los beiges y dorados de una pared, más amarillos, tampoco)
+const isSkin = (L, C, h) => h > 0.45 && h < 1.33 && C < 0.135 && L > 0.38 && L < 0.9;
 
 // Paleta de respaldo (sin fotos): los acentos de la propia web, ya «vivos»
 export const FALLBACK_HEX = ['#ff6fae', '#ff9a5c', '#f5c542', '#3fcf9a', '#3aa7ff', '#8b7bff'];
@@ -173,53 +174,80 @@ export function buildPalette(lists, { max = 6, min = 5 } = {}) {
     c.C = Math.hypot(c.a, c.b); c.h = Math.atan2(c.b, c.a);
     c.skin = isSkin(c.L, c.C, c.h);
     const vivid = smooth(0.045, 0.16, c.C);
-    // presencia (con rendimientos decrecientes) × viveza × (en varias fotos, un pelín más)
-    c.score = Math.sqrt(c.w / tw) * Math.pow(0.05 + vivid, 1.2) * (1 + 0.1 * (bits(c.imgs) - 1));
+    // presencia (con rendimientos decrecientes) × viveza × (en varias fotos, un pelín más) × (lo muy
+    // oscuro, menos: su versión clara sería más invento que foto)
+    c.score = Math.sqrt(c.w / tw) * Math.pow(0.05 + vivid, 1.2) * (1 + 0.1 * (bits(c.imgs) - 1)) * (0.55 + 0.45 * smooth(0.26, 0.5, c.L));
   });
   cand.sort((x, y) => y.score - x.score);
 
-  // Elige con distancia mínima: tono distinto (o, con poco croma, distancia OKLab).
-  // Primero solo colores vivos que no son piel; la piel entra después, una sola vez y si su tono
-  // no lo ocupa ya un color vivo (un naranja de verdad gana a una cara).
+  // Elección voraz: en cada vuelta gana el que más vale × lo lejos que queda de lo ya elegido.
+  // Dos tonos nunca a menos de SEP_MIN (en la onda solo cuentan tono y croma: la luz la iguala el
+  // shader), y la separación «sobrada» (SEP_OK) se premia: así no salen cuatro rosas seguidos y
+  // un color apagado pero distinto (el beige de una pared → dorado) gana a otro rosa.
+  // La piel entra una vez como mucho y con algo de castigo (un naranja de verdad gana a una cara).
+  const SEP_MIN = 0.45, SEP_OK = 0.95;   // ≈26° y ≈54°
+  // (siempre por tono: todo lo elegido sale con croma, aunque en la foto fuera un beige apagado)
+  const sep = (p, c) => hueDist(p.h, c.h);
   const pick = [];
-  const far = (p, c, hMin, dMin) => (p.C > 0.05 && c.C > 0.05 ? hueDist(p.h, c.h) >= hMin : Math.sqrt(d2(p.L, p.a, p.b, c.L, c.a, c.b)) >= dMin);
-  const passes = [
-    { hMin: 0.44, dMin: 0.1, cMin: 0.07, skin: false },   // ≈25°
-    { hMin: 0.44, dMin: 0.1, cMin: 0.06, skin: true },
-    { hMin: 0.3, dMin: 0.075, cMin: 0.05, skin: true },   // ≈17°
-    { hMin: 0.3, dMin: 0.075, cMin: 0.035, skin: true },  // también lo apagado (un traje azul marino)
-  ];
-  for (const ps of passes) {
+  while (pick.length < max) {
+    let best = null, bestV = 0;
     for (const c of cand) {
-      if (pick.length >= max) break;
-      if (pick.includes(c) || c.C < ps.cMin) continue;
-      if (c.skin && (!ps.skin || pick.some((p) => p.skin))) continue;
-      if (pick.every((p) => far(p, c, ps.hMin, ps.dMin))) pick.push(c);
+      if (c.C < 0.04 || pick.includes(c) || (c.skin && pick.some((p) => p.skin))) continue;
+      const s = pick.length ? Math.min(...pick.map((p) => sep(p, c))) : Math.PI;
+      if (s < SEP_MIN) continue;
+      const v = c.score * (0.2 + 0.8 * smooth(SEP_MIN, SEP_OK, s)) * (c.skin ? 0.7 : 1);
+      if (v > bestV) { bestV = v; best = c; }
     }
-    if (pick.length >= min) break;
+    // el sexto solo si merece la pena (con cinco ya hay paleta)
+    if (!best || (pick.length >= min && bestV < 0.22 * pick[0].score)) break;
+    pick.push(best);
   }
   // Sin nada aprovechable (fotos grises o ninguna): vacía, y quien llama decide (otra fuente o la de respaldo)
   if (!pick.length) return [];
-  // Con pocas fotos (o una sola, toda rosa) se completa con vecinos análogos de lo que sí hay,
-  // no con colores ajenos: mismo carácter, tonos a ±30–55° y algo de juego de luz.
-  const base = pick.slice();
-  const steps = [[0.52, 0.05], [-0.52, -0.05], [0.96, -0.03], [-0.96, 0.04], [1.4, 0.02], [-1.4, -0.02]];
-  for (let s = 0; pick.length < min && s < steps.length * base.length; s++) {
-    const src = base[s % base.length], [dh, dl] = steps[Math.floor(s / base.length)];
-    const h = src.h + dh, C = Math.max(src.C, 0.1), L = clamp(src.L + dl, 0.3, 0.9);
-    const c = { L, a: C * Math.cos(h), b: C * Math.sin(h), C, h, w: 0, skin: false, derived: true };
-    if (pick.every((p) => hueDist(p.h, h) >= 0.3)) pick.push(c);
+  // Con pocas fotos (o una sola, toda rosa) se completa con vecinos análogos de lo que sí hay, no
+  // con colores ajenos: a ±36° de uno elegido y, si ya no cabe, a ±72°. Primero los que quedan ENTRE
+  // dos colores de verdad (interpolan) y los vecinos de los que más pesan.
+  const real = pick.slice();
+  const between = (h) => {   // ¿cae en un hueco «interior» (< 140°) entre dos elegidos?
+    const hs = real.map((p) => p.h);
+    if (hs.length < 2) return false;
+    let lo = Infinity, hi = Infinity;
+    hs.forEach((x) => { const d = ((x - h) % TAU + TAU) % TAU; if (d < hi) hi = d; const e = ((h - x) % TAU + TAU) % TAU; if (e < lo) lo = e; });
+    return lo + hi < 2.45;
+  };
+  while (pick.length < min) {
+    let best = null, bestV = -Infinity;
+    for (const ring of [0.63, 1.26]) {
+      real.forEach((src, rank) => [1, -1].forEach((sg) => {
+        const h = src.h + sg * ring;
+        if (Math.min(...pick.map((p) => hueDist(p.h, h))) < 0.5) return;
+        const v = (between(h) ? 1 : 0) - 0.15 * rank - (sg < 0 ? 0.05 : 0);
+        if (v > bestV) { bestV = v; best = { src, h }; }
+      }));
+      if (best) break;
+    }
+    if (!best) break;
+    const { src, h } = best, C = Math.max(src.C, 0.1);
+    pick.push({ L: src.L, a: C * Math.cos(h), b: C * Math.sin(h), C, h, w: 0, skin: false, derived: true });
   }
   return order(pick.map(vivify));
 }
 
-// Paleta lista para la web: luz en una franja cómoda y algo más de croma (con gusto: nunca chillón)
+// Luz «bonita» de cada tono (OKLab): los naranjas oscuros son marrones y los amarillos a media luz,
+// mostaza u oliva; los azules y violetas aguantan más oscuros. Tabla cada 30°, interpolada.
+const NICE_L = [0.72, 0.7, 0.77, 0.85, 0.86, 0.8, 0.79, 0.76, 0.68, 0.65, 0.68, 0.71];
+function niceL(h) {
+  const x = (((h / TAU) % 1) + 1) % 1 * 12, i = Math.floor(x) % 12, f = x - Math.floor(x);
+  const e = f * f * (3 - 2 * f);
+  return NICE_L[i] + (NICE_L[(i + 1) % 12] - NICE_L[i]) * e;
+}
+
+// Paleta lista para la web: la luz de cada tono en su franja bonita (con un poco del carácter de
+// la foto) y algo más de croma, con gusto: nunca chillón; la piel, más comedida.
 function vivify(c) {
-  // los amarillos solo son bonitos claros (a media luz se vuelven mostaza u oliva)
-  const yellow = Math.max(0, 1 - hueDist(c.h, 1.66) / 0.55);
-  const L = 0.62 + 0.17 * smooth(0.22, 0.92, c.L) + 0.08 * yellow * yellow;
-  let C = Math.max(c.skin ? 0.1 : 0.11, c.C * 1.2 + 0.018);
-  C = fitChroma(L, Math.min(C, c.skin ? 0.13 : 0.24), c.h);
+  const L = clamp(niceL(c.h) + 0.22 * (c.L - 0.62), 0.6, 0.9);
+  let C = clamp(c.C * 1.25 + 0.03, c.skin ? 0.09 : 0.11, c.skin ? 0.125 : 0.22);
+  C = fitChroma(L, C, c.h);
   const [, a, b] = lchToLab(L, C, c.h);
   return { L: +L.toFixed(4), C: +C.toFixed(4), h: +c.h.toFixed(4), a: +a.toFixed(4), b: +b.toFixed(4), hex: labToHex(L, a, b), w: +(c.w || 0).toFixed(4), skin: !!c.skin, derived: !!c.derived };
 }

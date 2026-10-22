@@ -17,15 +17,15 @@ precision highp float;
 precision mediump float;
 #endif
 
-uniform vec2 uRes;       // tamaño del lienzo (px de dispositivo)
-uniform float uPx;       // px de dispositivo por px CSS
+uniform vec2 uRes;       // tamaño del lienzo (px de lienzo)
+uniform float uPx;       // px de lienzo por px CSS
 uniform float uTime;     // s (mueve el campo de color)
 uniform float uFlow;     // 1 normal, 0 movimiento reducido (campo quieto)
 uniform float uYMin;     // luminancia mínima del fondo resultante (sobre blanco)
 uniform float uMaxA;     // tope de opacidad (para colores muy claros, que casi no oscurecen)
 uniform vec4 uA[${SLOTS}];   // xy origen (px CSS de la ventana), z radio del frente, w ancho del borde
-uniform vec4 uB[${SLOTS}];   // x relleno, y cresta, z radio del hueco central, w giro
-uniform vec4 uC[${SLOTS}];   // x semilla, y fila de paleta (v), z alcance, w libre
+uniform vec4 uB[${SLOTS}];   // x relleno, y cresta, z radio del hueco central, w giro (rad)
+uniform vec4 uC[${SLOTS}];   // x semilla, y fila de paleta (v), z alcance, w expansión del campo
 uniform sampler2D uPal;
 
 // --- ruido simplex 2D (Ashima Arts / Stefan Gustavson, licencia MIT) ---
@@ -53,19 +53,6 @@ float snoise(vec2 v) {
 }
 
 const mat2 ROT = mat2(0.8, -0.6, 0.6, 0.8);
-float fbm3(vec2 p) {
-  float s = 0.5 * snoise(p); p = ROT * p * 2.02 + 11.7;
-  s += 0.25 * snoise(p); p = ROT * p * 2.03 + 7.3;
-  s += 0.125 * snoise(p);
-  return s / 0.875;
-}
-float fbm4(vec2 p) {
-  float s = 0.5 * snoise(p); p = ROT * p * 2.02 + 11.7;
-  s += 0.25 * snoise(p); p = ROT * p * 2.03 + 7.3;
-  s += 0.125 * snoise(p); p = ROT * p * 2.01 + 3.1;
-  s += 0.0625 * snoise(p);
-  return s / 0.9375;
-}
 
 // ruido de gradiente entrelazado (Jimenez): tramado barato y sin patrón visible
 float ign(vec2 p) { return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
@@ -76,51 +63,68 @@ void main() {
   // ¿Llega aquí algún frente? Si no, transparente y fuera (al principio casi todo el lienzo sale por aquí)
   bool any = false;
   for (int i = 0; i < ${SLOTS}; i++) {
-    if (uB[i].x + uB[i].y > 0.001 && length(p - uA[i].xy) < uA[i].z + uA[i].w) any = true;
+    if (uB[i].x + uB[i].y > 0.001 && length(p - uA[i].xy) < uA[i].z + uA[i].w * 1.1) any = true;
   }
   if (!any) { gl_FragColor = vec4(0.0); return; }
 
-  // Campo de color común a todas las ondas: fbm con el dominio deformado (manchas grandes y lentas)
-  float t = uTime * uFlow;
-  vec2 q = p / 900.0;
-  vec2 w = vec2(fbm3(q * 0.8 + vec2(1.7, 9.2 + 0.16 * t)), fbm3(q * 0.8 + vec2(8.3 - 0.14 * t, 2.8)));
-  float n = fbm3(q + w * 0.8 + vec2(0.06 * t, -0.05 * t));
+  // Remolino: cada onda gira y abre un poco el campo alrededor de su clic (más cerca, más). Se
+  // componen todas, y como cada una empieza en 0 y se apaga con su relleno, nada salta.
+  vec2 s = p;
+  for (int i = 0; i < ${SLOTS}; i++) {
+    float k = uB[i].x;
+    if (k < 0.001) continue;
+    vec2 v = s - uA[i].xy;
+    float d = length(v);
+    float th = uB[i].w * k * exp(-d / 680.0);
+    float cs = cos(th), sn = sin(th);
+    s = uA[i].xy + mat2(cs, sn, -sn, cs) * v * (1.0 - uC[i].w * k * exp(-d / 900.0));
+  }
 
-  // Cada onda aporta una intensidad (0–1) y un color; al final la intensidad se traduce en opacidad
-  // RELATIVA al tope de luminancia de ese color: todos los tonos aclaran el fondo por igual
+  // Campo de color común a todas las ondas (así, si se solapan, coinciden): ruido simplex con el
+  // dominio deformado, manchas grandes y lentas; w también modula la densidad (nubes más o menos llenas)
+  float t = uTime * uFlow;
+  vec2 q = s / 820.0;
+  vec2 w = vec2(snoise(q * 0.9 + vec2(1.7, 9.2 + 0.1 * t)), snoise(q * 0.9 + vec2(8.3 - 0.08 * t, 2.8)));
+  vec2 qq = q + w * 0.48 + vec2(0.05 * t, -0.04 * t);
+  float n1 = snoise(qq);
+  float n = 0.74 * n1 + 0.26 * snoise(ROT * qq * 2.03 + 4.1);
+
   vec3 accC = vec3(0.0);
-  float accI = 0.0;
+  float accW = 0.0, keep = 1.0, glint = 0.0;
   for (int i = 0; i < ${SLOTS}; i++) {
     vec4 A = uA[i]; vec4 B = uB[i]; vec4 C = uC[i];
     if (B.x + B.y < 0.001) continue;
     vec2 v = p - A.xy;
     float d = length(v);
     float R = A.z, F = A.w;
-    float de = d + n * F * 0.42;                                   // frente orgánico (lo deforma el propio campo)
-    float behind = 1.0 - smoothstep(R - F * 0.5, R + F * 0.5, de); // 1 detrás del frente, borde muy suave
-    if (behind <= 0.0) continue;
-    float hollow = smoothstep(B.z - F, B.z + F * 0.6, de);         // el centro se vacía cuando la onda se va
-    float nearF = smoothstep(R - F * 2.8, R - F * 0.25, de);       // junto al frente hay más energía
+    float de = d + F * (0.16 * n1 + 0.12 * w.y);    // frente orgánico (lo deforma, suave, el propio campo)
+    float x = (de - R) / F;                          // en anchos de borde: < 0 detrás del frente
+    if (x > 0.62) continue;
+    float front = 1.0 - smoothstep(-0.52, 0.52, x);                  // borde muy suave
+    float body = mix(0.8, 1.0, exp(min(x, 0.0) * 1.3));            // junto al frente hay más energía
+    float hol = smoothstep(B.z - F * 1.3, B.z + F * 0.9, de);        // el centro se vacía cuando la onda se va
+    float I = min(1.0, B.x * front * body * hol * (0.84 + 0.26 * w.x));   // nubes más o menos llenas
+    // cresta: banda algo más intensa justo en el frente, con el color corrido (una refracción)…
+    float xc = (x + 0.08) / 0.16;
+    float crest = B.y * exp(-xc * xc) * hol;
+    // …y un brillo fino justo detrás: una línea más clara, como el canto de una lente
+    float xg = (x + 0.3) / 0.075;
+    glint = max(glint, B.y * exp(-xg * xg) * hol);
+    // coordenada de paleta: el campo + un giro lento alrededor del clic + bandas que salen con el frente
     float ang = atan(v.y, v.x);
-    // coordenada de paleta: el campo de ruido + un remolino lento alrededor del clic + bandas que salen con el frente
-    float u = C.x + n * 0.38 + 0.06 * sin(ang + B.w * 1.5) + (R - d) * 0.00012 + B.w * 0.1;
+    float u = C.x + n * 0.27 + 0.05 * sin(ang + B.w * 1.4 + 2.0 * n) + (R - d) / 3200.0 + B.w * 0.05;
     vec3 col = texture2D(uPal, vec2(u, C.y)).rgb;
-    float I = B.x * behind * hollow * mix(0.5, 0.8, nearF) * (0.88 + 0.24 * n);
-    // cresta: una banda fina algo más intensa justo en el frente, con el color corrido (como una refracción)
-    float xc = (de - R) / (F * 0.2);
-    float crest = B.y * exp(-xc * xc) * 0.36;
-    vec3 ccol = texture2D(uPal, vec2(u + 0.08, C.y)).rgb;
-    // brillo: detrás de la cresta el relleno se aclara (una lente que se lleva la luz)
-    float yg = (de - (R - F * 0.5)) / (F * 0.16);
-    I *= 1.0 - 0.5 * B.y * exp(-yg * yg);
-    accC += col * I + ccol * crest;
-    accI += I + crest;
+    vec3 colC = texture2D(uPal, vec2(u + 0.11, C.y)).rgb;
+    float Ii = clamp(I + crest * 0.45, 0.0, 1.0);
+    vec3 ci = mix(col, colC, crest / (I + crest + 0.001));
+    // la que más pesa en este punto pone el color (cuadrado: transiciones suaves, sin barro)
+    float wgt = Ii * Ii + 1e-6;
+    accC += ci * wgt; accW += wgt;
+    keep *= 1.0 - Ii;   // unión suave: varias ondas se suman sin pasar nunca de 1
   }
-  if (accI < 0.0005) { gl_FragColor = vec4(0.0); return; }
-
-  // Varias ondas a la vez suman con suavidad (rodilla blanda) y nunca pasan de intensidad 1
-  vec3 col = accC / accI;
-  float I = min(1.0, accI / sqrt(1.0 + 0.28 * accI * accI));
+  float I = 1.0 - keep;
+  if (I < 0.0015) { gl_FragColor = vec4(0.0); return; }
+  vec3 col = accC / accW;
 
   // Legibilidad: a intensidad 1 el fondo resultante (sobre blanco) queda justo en uYMin de luminancia.
   // Y(a) ≈ Σ w·(1 − a·e)² con e = 1 − color → la opacidad tope sale de una cuadrática.
@@ -129,7 +133,7 @@ void main() {
   float s1 = dot(W, e), s2 = dot(W, e * e);
   float disc = s1 * s1 - s2 * (1.0 - uYMin);
   float cap = (disc >= 0.0 && s2 > 1e-5) ? (s1 - sqrt(disc)) / s2 : 1.0;
-  float A = clamp(min(cap, uMaxA) * I, 0.0, 1.0);
+  float A = clamp(min(cap, uMaxA) * I * (1.0 - 0.36 * glint), 0.0, 1.0);
 
   // Tramado (dos ruidos distintos para color y alfa): sin bandas en degradados tan suaves
   float on = step(0.002, A);
@@ -175,6 +179,7 @@ export function createGLRenderer(canvas, { allowSoftware = false } = {}) {
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS) && !gl.isContextLost()) throw new Error('Shader de la onda: ' + gl.getProgramInfoLog(prog));
   } catch (e) {
     console.warn(e.message || e);
+    try { gl.getExtension('WEBGL_lose_context')?.loseContext(); } catch (err) { /* nada */ }
     return null;
   }
   gl.useProgram(prog);
@@ -211,18 +216,20 @@ export function createGLRenderer(canvas, { allowSoftware = false } = {}) {
       if (w !== canvas.width || h !== canvas.height) { canvas.width = w; canvas.height = h; clean = true; }
       W = w; H = h; px = w / cssW;
     },
+    // dormido: el lienzo a 1×1 libera su memoria (el contexto y el shader se quedan)
+    sleep() { if (canvas.width !== 1 || canvas.height !== 1) { canvas.width = canvas.height = 1; W = H = 1; clean = true; } },
     setPalette(slot, bytes) {
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, slot, 256, 1, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
     },
-    // waves: [{ slot, x, y, r, f, fill, rim, hollow, twist, seed, reach }]
+    // waves: [{ slot, x, y, r, f, fill, rim, hollow, twist, seed, reach, zoom }]
     draw(waves, { time, flow, yMin, maxA }) {
       A.fill(0); B.fill(0); C.fill(0);
       for (const w of waves) {
         const o = w.slot * 4;
         A[o] = w.x; A[o + 1] = w.y; A[o + 2] = w.r; A[o + 3] = w.f;
         B[o] = w.fill; B[o + 1] = w.rim; B[o + 2] = w.hollow; B[o + 3] = w.twist;
-        C[o] = w.seed; C[o + 1] = (w.slot + 0.5) / PAL_ROWS; C[o + 2] = w.reach;
+        C[o] = w.seed; C[o + 1] = (w.slot + 0.5) / PAL_ROWS; C[o + 2] = w.reach; C[o + 3] = w.zoom || 0;
       }
       gl.viewport(0, 0, W, H);
       gl.uniform2f(loc.uRes, W, H);

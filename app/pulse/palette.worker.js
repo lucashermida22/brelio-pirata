@@ -6,7 +6,7 @@ import { analyzePixels, buildPalette, bakeGradient } from './quantize.js';
 
 async function bitmapOf(blob, size) {
   // con tamaño de salida el navegador reduce bien (y decodifica menos); si no lo admite, entera
-  try { return await createImageBitmap(blob, { resizeWidth: size, resizeHeight: size, resizeQuality: 'medium' }); }
+  try { return await createImageBitmap(blob, { resizeWidth: size, resizeHeight: size, resizeQuality: 'high' }); }
   catch (e) { return createImageBitmap(blob); }
 }
 

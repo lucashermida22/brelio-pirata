@@ -16,7 +16,7 @@ clock.base = clock.real0 = performance.now();
 
 export const cfg = {
   allowSoftwareGL: false,   // depuración/pruebas: aceptar WebGL por software (SwiftShader)
-  yMin: 0.76,               // luminancia del fondo a intensidad máxima (nunca más oscuro: el texto se lee siempre)
+  yMin: 0.72,               // luminancia del fondo a intensidad máxima (nunca más oscuro: el texto se lee siempre)
   maxA: 0.72,               // tope de opacidad (solo cuenta en colores muy claros, que casi no oscurecen)
   scaleCap: 1.25,           // tope de resolución del lienzo (px de lienzo por px CSS)
   pixelBudget: 2.6e6,       // y de píxeles totales
@@ -143,7 +143,7 @@ export function render() {
     if (w.reduced) { r = w.g.reach * 3; f = w.g.reach; } else { r = radiusAt(w.g, age); f = featherAt(Math.max(0, r)); }
     list.push({
       slot: w.slot, x: w.docX - scrollX, y: w.docY - scrollY, r, f, reduced: w.reduced,
-      fill: env.fill * k, rim: env.rim * k, hollow: env.hollow, twist: env.twist, seed: w.seed, reach: w.g.reach,
+      fill: env.fill * k, rim: env.rim * k, hollow: env.hollow, twist: env.twist, zoom: env.zoom, seed: w.seed, reach: w.g.reach,
     });
   }
   if (!list.length) {
