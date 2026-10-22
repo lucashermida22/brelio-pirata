@@ -1,0 +1,296 @@
+@keyframes glowPulse {0%,100%{filter:drop-shadow(0 0 0 rgba(26,93,220,0))}50%{filter:drop-shadow(0 0 18px rgba(26,93,220,.28))}}
+@keyframes floaty {0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-7px) rotate(.5deg)}}
+@keyframes popIn {0%{opacity:0;transform:scale(.72) rotate(-4deg);filter:blur(10px)}65%{opacity:1;transform:scale(1.04) rotate(1deg);filter:blur(0)}100%{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes heartBob {0%,100%{margin-top:0}50%{margin-top:-15px}}
+body.party-mode{overflow:hidden}
+body.party-mode .hero h1{animation:floaty .7s ease-in-out infinite}
+body.party-mode .card,body.party-mode .section{animation:glowPulse .65s ease-in-out infinite}
+.team{animation:popIn .6875s cubic-bezier(.2,.8,.2,1) both}
+/* ===== VS reveal overlay ===== */
+#vsLayer{position:fixed;inset:0;z-index:9999;display:none;overflow:hidden;cursor:pointer;
+  background:radial-gradient(ellipse at 50% 30%,rgba(255,255,255,.92) 0%,rgba(255,226,247,.92) 32%,rgba(255,143,210,.6) 66%,rgba(255,84,176,.45) 100%);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#vsLayer.active{display:block}
+#vsLayer.active.intro{animation:vsFadeIn .25s ease both}
+#vsLayer.closing{animation:vsFadeOut .45s ease forwards}
+@keyframes vsFadeIn{from{opacity:0}}
+@keyframes vsFadeOut{to{opacity:0;transform:scale(1.04);filter:blur(6px)}}
+.vs-rays{position:absolute;left:50%;top:50%;width:220vmax;height:220vmax;transform:translate(-50%,-50%);
+  background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.7) 0deg 5deg,rgba(255,137,207,.14) 5deg 10deg,transparent 10deg 15deg);
+  animation:raySpin 18s linear infinite,rayIn .9s ease-out both;transition:top .9s cubic-bezier(.7,0,.2,1)}
+#vsLayer.up .vs-rays{top:16vh}
+@keyframes raySpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes rayIn{from{opacity:0;scale:.2}}
+.vs-sparkles{position:absolute;inset:auto 0 3vh;text-align:center;color:#fff;font:900 clamp(16px,2.4vw,28px)/1 system-ui,sans-serif;letter-spacing:.14em;text-shadow:0 0 8px #ff42b5,0 0 22px #ff75ca;opacity:0;transition:opacity .6s}
+#vsLayer.done .vs-sparkles{opacity:1;animation:twinkle 1.2s ease-in-out infinite}
+@keyframes twinkle{50%{opacity:.45}}
+/* hero photo: centre → top */
+#vsHero{position:absolute;left:50%;top:50%;height:min(64vh,620px);aspect-ratio:9/16;object-fit:cover;
+  transform:translate(-50%,-50%);border:7px solid #fff;border-radius:28px;
+  box-shadow:0 0 0 4px #ff8ed2,0 0 0 11px rgba(255,255,255,.7),0 0 60px 20px rgba(255,69,178,.55);
+  transition:top .9s cubic-bezier(.7,0,.2,1),height .9s cubic-bezier(.7,0,.2,1),transform .9s cubic-bezier(.7,0,.2,1),border-width .9s,border-radius .9s;
+  animation:heroIn 1s cubic-bezier(.2,.8,.2,1) both}
+@keyframes heroIn{0%{opacity:0;scale:.1;rotate:-14deg;filter:blur(14px) saturate(1.8)}55%{opacity:1;scale:1.07;rotate:4deg;filter:blur(0) saturate(1.3)}75%{scale:.97;rotate:-1.5deg}100%{scale:1;rotate:0deg}}
+#vsLayer.up #vsHero{top:2.2vh;height:20vh;transform:translate(-50%,0);border-width:4px;border-radius:18px;animation:heroIn 1s cubic-bezier(.2,.8,.2,1) both,heroBob 2.4s ease-in-out 1.2s infinite}
+@keyframes heroBob{50%{translate:0 -5px;rotate:1.2deg}}
+.vs-title{position:absolute;left:50%;top:23.5vh;transform:translateX(-50%);white-space:nowrap;opacity:0;
+  font:1000 clamp(18px,3.2vw,38px)/1 system-ui,sans-serif;color:#fff;-webkit-text-stroke:1px #ff58b8;
+  text-shadow:0 3px 0 #e93e9f,0 5px 0 #ff9bd7,0 0 16px #ff39b6,0 0 34px #ff9cde}
+#vsLayer.up .vs-title{animation:titlePop .7s cubic-bezier(.2,.8,.2,1) .55s both}
+@keyframes titlePop{0%{opacity:0;scale:.2;rotate:-10deg}60%{opacity:1;scale:1.15;rotate:4deg}100%{opacity:1;scale:1;rotate:0deg}}
+/* arena */
+#vsArena{position:absolute;left:0;right:0;top:30vh;bottom:9vh;display:flex;align-items:center;justify-content:center;gap:var(--gap,14px);padding:0 3vw;overflow:auto}
+.vs-team{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px;border-radius:22px;background:rgba(255,255,255,.55);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.85),0 14px 40px -14px rgba(233,62,159,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.vs-team.from-l{animation:teamInL .6s cubic-bezier(.2,.9,.25,1.15) both}
+.vs-team.from-r{animation:teamInR .6s cubic-bezier(.2,.9,.25,1.15) both}
+@keyframes teamInL{from{opacity:0;transform:translateX(-60vw) rotate(-8deg)}}
+@keyframes teamInR{from{opacity:0;transform:translateX(60vw) rotate(8deg)}}
+.vs-team-name{display:flex;align-items:center;gap:8px;font:800 clamp(13px,1.6vw,18px)/1 var(--f-head);color:#9d1767;letter-spacing:-.01em}
+.vs-team-name i{width:12px;height:12px;border-radius:4px;box-shadow:0 0 0 2px #fff}
+.vs-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;width:calc(var(--cols) * var(--card) + (var(--cols) - 1) * 10px)}
+.vs-card{width:var(--card);display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0}
+.vs-card.spin,.vs-card.landed{opacity:1}
+.vs-face{position:relative;width:var(--card);height:var(--card);border-radius:22%;overflow:hidden;background:#fff;display:grid;place-items:center;
+  box-shadow:0 0 0 3px #fff,0 0 0 6px var(--tc,#ff8ed2),0 10px 24px -8px rgba(157,23,103,.5)}
+.vs-face img{width:100%;height:100%;object-fit:cover;display:block}
+.vs-face .emo{font-size:calc(var(--card) * .56);line-height:1}
+.vs-card.spin .vs-face{animation:slotShake .09s linear infinite}
+.vs-card.spin .vs-face > *{filter:blur(2px) saturate(1.6)}
+@keyframes slotShake{50%{translate:0 -3px}}
+.vs-card.landed .vs-face{animation:land .55s cubic-bezier(.2,.9,.25,1.3) both}
+.vs-card.landed .vs-face > *{filter:none}
+@keyframes land{0%{scale:1.35;rotate:-8deg}55%{scale:.92;rotate:3deg}100%{scale:1;rotate:0deg}}
+.vs-face::after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle,rgba(255,255,255,.95),transparent 70%);opacity:0}
+.vs-card.landed .vs-face::after{animation:flash .5s ease-out}
+@keyframes flash{0%{opacity:1}100%{opacity:0}}
+.vs-nm{max-width:calc(var(--card) + 16px);font:800 var(--nfs,13px)/1.15 var(--f-head);color:#3f0a2a;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  background:#fff;padding:4px 8px;border-radius:999px;box-shadow:0 2px 0 #ffb3df;opacity:0;transform:translateY(6px);transition:.3s cubic-bezier(.2,.9,.25,1.3)}
+.vs-card.landed .vs-nm{opacity:1;transform:none}
+.vs-pop{position:absolute;pointer-events:none;font-size:20px;animation:popOut .8s ease-out forwards}
+@keyframes popOut{from{opacity:1;transform:translate(0,0) scale(.4)}to{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.2) rotate(40deg)}}
+.vs-badge{flex:none;display:grid;place-items:center;width:var(--vsw,84px);height:var(--vsw,84px);border-radius:50%;
+  font:1000 calc(var(--vsw,84px) * .42)/1 system-ui,sans-serif;font-style:italic;color:#fff;letter-spacing:-.04em;
+  background:radial-gradient(circle at 35% 30%,#ff9ad6,#ff3aa8 55%,#c2127a);
+  box-shadow:0 0 0 4px #fff,0 0 0 8px #ff8ed2,0 0 40px 10px rgba(255,58,168,.6);
+  text-shadow:0 3px 0 #9d1767;animation:vsSlam .55s cubic-bezier(.2,.9,.25,1.2) both}
+.vs-badge span{display:block;animation:vsPulse 1s ease-in-out .6s infinite}
+@keyframes vsSlam{0%{opacity:0;scale:4;rotate:-30deg;filter:blur(6px)}60%{opacity:1;scale:.85;rotate:6deg;filter:none}80%{scale:1.1}100%{scale:1;rotate:0deg}}
+@keyframes vsPulse{50%{scale:1.12}}
+#vsLayer.shake{animation:screenShake .35s linear}
+@keyframes screenShake{20%{translate:-6px 3px}40%{translate:5px -4px}60%{translate:-4px -2px}80%{translate:3px 3px}}
+@media (max-width:640px){
+  #vsArena{flex-direction:column;justify-content:flex-start;top:29vh;padding:8px 12px 0}
+  .vs-team.from-l{animation-name:teamInT}
+  .vs-team.from-r{animation-name:teamInB}
+  #vsLayer.up #vsHero{height:18vh}
+  .vs-title{top:21.5vh}
+}
+@keyframes teamInT{from{opacity:0;transform:translateX(-100vw)}}
+@keyframes teamInB{from{opacity:0;transform:translateX(100vw)}}
+#vsSkip{position:absolute;left:50%;bottom:2.4vh;transform:translateX(-50%);height:40px;padding:0 18px;border:0;border-radius:999px;cursor:pointer;
+  background:#fff;color:#c2127a;font:700 14px/1 var(--f-head);box-shadow:0 0 0 3px #ff8ed2,0 10px 24px -8px rgba(194,18,122,.6);opacity:0;pointer-events:none;transition:opacity .4s}
+#vsLayer.done #vsSkip{opacity:1;pointer-events:auto;animation:btnPulse 1.1s ease-in-out infinite}
+#vsLayer.done .vs-sparkles{display:none}
+@keyframes btnPulse{50%{scale:1.06}}
+#heartOrbit{position:absolute;inset:0;pointer-events:none}
+#heartOrbit span{position:absolute;font-size:clamp(22px,3.6vw,46px);line-height:1;filter:drop-shadow(0 3px 8px rgba(255,60,166,.5));opacity:0}
+#vsLayer.active #heartOrbit span{animation:heartPop 2.6s cubic-bezier(.2,.8,.2,1) var(--d,0s) both}
+#vsLayer.done #heartOrbit span{animation:heartPop 2.6s cubic-bezier(.2,.8,.2,1) var(--d,0s) both,heartBob 1s ease-in-out infinite}
+@keyframes heartPop{0%{opacity:0;transform:scale(.15) rotate(-25deg)}14%{opacity:1;transform:scale(1.3) rotate(10deg)}30%{opacity:1;transform:scale(.9) rotate(-7deg)}75%{opacity:1;transform:scale(1.05) rotate(6deg)}100%{opacity:0;transform:scale(1.4) rotate(20deg)}}
+/* small photos in the app */
+.avatar.ph{overflow:hidden;padding:0;background:#fff}
+.avatar.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar.emo{font-size:15px;background:#fff}
+.members .avatar{width:32px;height:32px}
+.lane{display:inline-flex;align-items:center;height:18px;margin-left:6px;padding:0 6px;border-radius:5px;font:700 10px/1 var(--f-body);letter-spacing:.04em;vertical-align:1px;color:var(--lc);background:color-mix(in srgb,var(--lc) 12%,#fff);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--lc) 25%,#fff)}
+.lol-toggle{justify-content:flex-start;gap:8px;margin-top:4px}
+.lol-toggle small{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted);background:var(--well);padding:2px 8px;border-radius:6px}
+.lol-dot{width:8px;height:8px;border-radius:999px;background:var(--grey);transition:.2s}
+.lol-toggle[aria-pressed="true"]{border-color:#f9a8d4;background:#fdf2f8;color:#9d1767}
+.lol-toggle[aria-pressed="true"] small{background:#fce7f3;color:#c2127a}
+.lol-toggle[aria-pressed="true"] .lol-dot{background:#ff3aa8;box-shadow:0 0 0 3px #fce7f3}
+.lol-hint{margin:6px 0 12px;min-height:0}
+.vs-lane{font:800 calc(var(--nfs,13px) * .78)/1 var(--f-body);letter-spacing:.06em;color:#fff;background:var(--lc);padding:4px 7px;border-radius:6px;box-shadow:0 2px 0 rgba(0,0,0,.18);opacity:0;transform:scale(.4) rotate(-8deg);transition:.35s cubic-bezier(.2,.9,.25,1.4) .12s}
+.vs-card.landed .vs-lane{opacity:1;transform:none}
+.pick-tip{font-size:12px;color:var(--muted);margin:10px 0 0}
+.av-btn{padding:0;border:0;background:none;border-radius:999px;cursor:pointer;flex:none;transition:transform .15s}
+.av-btn:hover{transform:scale(1.12)}
+.av-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.picker[hidden]{display:none}
+.picker{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(24,24,27,.38);backdrop-filter:blur(4px)}
+.picker-card{width:min(520px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#fff;border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:16px;display:flex;flex-direction:column;gap:12px;animation:popIn .35s cubic-bezier(.2,.8,.2,1) both}
+.picker-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.picker-head .sec-sub{margin-bottom:0}
+.pick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media (max-width:420px){
+  .pick-grid{grid-template-columns:repeat(3,1fr)}
+}
+.pick-ph{display:flex;flex-direction:column;gap:4px;padding:4px;border:1px solid var(--ring);border-radius:var(--r-ctl);background:#fff;cursor:pointer;min-width:0}
+.pick-ph img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block}
+.pick-ph span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.pick-ph:hover{border-color:var(--line)}
+.pick-ph.sel{border-color:var(--focus);box-shadow:0 0 0 3px #0385f733}
+.pick-ph.sel span{color:var(--focus);font-weight:500}
+.pick-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pick-actions .btn{flex:1}
+.vs-team-name span{text-align:center;text-wrap:balance}
+.vs-team-name{max-width:calc(var(--cols) * var(--card) + (var(--cols) - 1) * 10px);justify-content:center}
+/* ===================== VARIANTES DE ANIMACIÓN ===================== */
+#vsFx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.vs-sub{position:absolute;left:50%;top:calc(23.5vh + clamp(24px,3.8vw,46px));transform:translateX(-50%);white-space:nowrap;opacity:0;pointer-events:none}
+#vsLayer.up .vs-sub{animation:subIn .6s ease 1s both}
+@keyframes subIn{from{opacity:0;translate:0 6px}to{opacity:1}}
+@media (max-width:640px){
+  .vs-sub{display:none}
+}
+/* ---------- 1. CINE: intro de estudio épica ---------- */
+@keyframes lbIn{from{height:0}}
+/* ---------- 2. GG EZ: arena gamer en 3D ---------- */
+@keyframes beatFlash{0%{opacity:1}100%{opacity:0}}
+/* ---------- 3. BRUH: todo a golpes, sin suavizar ---------- */
+@keyframes bruhShake{50%{translate:12px -6px}}
+/* ---------- 4. PERREO: reggaetón al dembow ---------- */
+@keyframes dembow{0%{scale:1.05 .93;rotate:-3deg}35%{scale:.97 1.05;rotate:3deg}100%{scale:1.05 .93;rotate:-3deg}}
+/* selector de animación */
+.anim-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.anim-row span{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap}
+.anim-row select{cursor:pointer;appearance:none;-webkit-appearance:none;padding-right:30px;
+  background:var(--field) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center/14px}
+/* GG EZ: capa de directo (stream) */
+/* ===================== POSICIONES FINALES POR ESTILO ===================== */
+@keyframes cEndL{to{transform:translateX(-3vw) scale(.94);filter:brightness(.92)}}
+@keyframes cEndR{to{transform:translateX(3vw) scale(.94);filter:brightness(.92)}}
+@keyframes gEndL{to{transform:rotateY(28deg) translateZ(-60px)}}
+@keyframes gEndR{to{transform:rotateY(-28deg) translateZ(-60px)}}
+@keyframes bEndL{to{transform:translateX(5vw) rotate(-7deg) translateY(-8px)}}
+@keyframes bEndR{to{transform:translateX(-5vw) rotate(6deg) translateY(14px)}}
+@keyframes bEndVs{to{transform:scale(1.5) rotate(-14deg) translateY(-30px)}}
+@keyframes pEndL{to{transform:translateX(3vw) translateY(4vh) rotate(7deg)}}
+@keyframes pEndR{to{transform:translateX(-3vw) translateY(4vh) rotate(-7deg)}}
+@keyframes pEndVs{to{transform:translateY(-6vh) scale(1.2)}}
+@media (max-width:640px){
+  @keyframes cEndL{to{transform:scale(.96)}}
+  @keyframes cEndR{to{transform:scale(.96)}}
+  @keyframes bEndL{to{transform:translateY(3vh) rotate(-4deg)}}
+  @keyframes bEndR{to{transform:translateY(-3vh) rotate(4deg)}}
+  @keyframes pEndL{to{transform:translateX(-2vw) rotate(-3deg)}}
+  @keyframes pEndR{to{transform:translateX(2vw) rotate(3deg)}}
+  @keyframes gEndL{to{transform:rotateX(16deg)}}
+  @keyframes gEndR{to{transform:rotateX(-16deg)}}
+  @keyframes pEndVs{to{transform:scale(1.15)}}
+  @keyframes bEndVs{to{transform:scale(1.4) rotate(-14deg)}}
+}
+/* ===================== MODO GANADOR ===================== */
+#vsLayer.win .vs-team .vs-team-name::before{content:"🏆";font-size:1.4em;margin-right:2px}
+#vsLayer[data-anim].win.done .vs-team.from-l{animation:winPulse 1.6s ease-in-out infinite}
+@keyframes winPulse{0%,100%{transform:scale(1.04)}50%{transform:scale(1.09)}}
+/* ganador en la agenda */
+.team.won{border-color:#f5c542;box-shadow:0 0 0 3px #fdf0c2}
+.won-badge{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:600;color:#8a5a00;background:#fff4d1}
+.win-btn{height:26px;font-size:12px}
+/* ---------- JOJO: menacing ---------- */
+@keyframes goIn{from{opacity:0;scale:2.2}to{opacity:var(--o,1);scale:1}}
+@keyframes goShake{0%{translate:-2px 1px}50%{translate:2px -1px}100%{translate:-1px -2px}}
+/* foto: viñeta de manga con aura */
+/* título */
+@keyframes jjTitle{from{opacity:0;transform:translateX(-50%) skewX(-25deg) scale(2.2)}to{opacity:1;transform:translateX(-50%) skewX(-10deg)}}
+/* equipos: viñetas inclinadas con aura de llamas */
+@keyframes jjApproachL{to{transform:none}}
+@keyframes jjApproachR{to{transform:none}}
+@media (max-width:640px){
+  @keyframes jjApproachL{to{transform:translateY(1.5vh) scale(1.03)}}
+  @keyframes jjApproachR{to{transform:translateY(-1.5vh) scale(1.03)}}
+}
+/* final: pose de grupo y "continuará" */
+.shape-bg.pose{display:none}
+/* ===== anime: stands, cambios de paleta, rush, tiempo detenido ===== */
+@keyframes standBob{50%{margin-bottom:10px;rotate:-1.5deg}}
+/* rush ORA / MUDA */
+/* tiempo detenido */
+#vsLayer.frozen *,#vsLayer.frozen *::before,#vsLayer.frozen *::after{animation-play-state:paused!important;transition:none!important}
+#vsLayer.frozen .jj-bg,#vsLayer.frozen #vsArena,#vsLayer.frozen #vsHero{filter:grayscale(.65) contrast(1.2)}
+/* Stand de cada jugador: en su propia columna, encima de su carta */
+/* ドドド en vertical, dentro del hueco entre equipos (detrás del VS) */
+/* ===== variante Mati: el fondo es la ilustración ===== */
+/* ===== formas finales ===== */
+@property --spin{syntax:'<angle>';inherits:true;initial-value:0deg}
+#vsArena .vs-team{position:relative}
+#vsArena .vs-card{position:relative;z-index:1}
+#vsArena .vs-team-name{position:relative;z-index:2}
+.shape-bg{position:absolute;transform:translate(-50%,-50%);pointer-events:none;z-index:0;animation:shapeIn 1s ease both}
+@keyframes shapeIn{from{opacity:0;scale:.6}}
+.vs-team.shaped .vs-card{transition:transform 1.1s cubic-bezier(.3,1.35,.5,1)}
+/* kawaii: corazón */
+.shape-bg.heart{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 90'%3E%3Cdefs%3E%3CradialGradient id='g' cx='50%25' cy='40%25' r='70%25'%3E%3Cstop offset='0' stop-color='%23fff0f8'/%3E%3Cstop offset='.6' stop-color='%23ffb3df'/%3E%3Cstop offset='1' stop-color='%23ff5bbf'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M50 86C20 64 2 46 2 26 2 12 13 2 26 2c10 0 18 6 24 14C56 8 64 2 74 2c13 0 24 10 24 24 0 20-18 38-48 60z' fill='url(%23g)' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E") center/100% 100% no-repeat;filter:drop-shadow(0 0 24px rgba(255,91,191,.7));animation:shapeIn 1s ease both,heartBeat 1.1s ease-in-out 1s infinite}
+@keyframes heartBeat{0%,100%{scale:1}15%{scale:1.06}30%{scale:.98}45%{scale:1.04}}
+/* cine: póster de reparto */
+.shape-bg.poster{border-radius:6px;background:radial-gradient(ellipse at 50% 0%,rgba(255,220,150,.45),rgba(255,220,150,.06) 55%,transparent 75%);box-shadow:inset 0 0 0 1px rgba(217,184,102,.5)}
+/* bruh: montón tirado */
+.shape-bg.pile{display:none}
+/* reggaetón: corro de baile que gira */
+.shape-bg.ring{border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,47,160,.55) 0 15deg,rgba(0,255,240,.4) 15deg 30deg,rgba(255,225,77,.45) 30deg 45deg);
+  -webkit-mask:radial-gradient(closest-side,transparent 58%,#000 60%,#000 98%,transparent 100%);mask:radial-gradient(closest-side,transparent 58%,#000 60%,#000 98%,transparent 100%);
+  box-shadow:0 0 40px rgba(255,47,160,.6);animation:shapeIn 1s ease both,discoSpin calc(var(--beat) * 8) linear infinite}
+@keyframes discoSpin{to{rotate:360deg}}
+.vs-team.ring-on .vs-card{transition:transform .9s cubic-bezier(.3,1.4,.5,1);transform:translate(var(--tx),var(--ty)) translate(calc(cos(var(--a) + var(--spin)) * var(--rx)),calc(sin(var(--a) + var(--spin)) * var(--ry))) scale(var(--sc,1))}
+.vs-team.ring-spin .vs-card{transition:none}
+.vs-team.ring-spin .vs-grid{animation:spinVar calc(var(--beat) * 16) linear infinite}
+@keyframes spinVar{to{--spin:360deg}}
+/* GG EZ en WebGL: la escena 3D sustituye foto y título del DOM */
+#vsLayer.gl #vsHero,#vsLayer.gl .vs-title,#vsLayer.gl .vs-sub{display:none}
+.three-flash.gg{background:radial-gradient(circle,#fff,#00f0ff 40%,transparent 75%)}
+.earth-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* modo ganador: sin la foto principal */
+#vsLayer.win #vsHero{display:none!important}
+#vsLayer[data-anim].win .vs-title,#vsLayer[data-anim].win.up .vs-title{top:8vh!important}
+#vsLayer[data-anim].win .vs-sub{top:calc(8vh + clamp(30px,5vw,64px))!important}
+#vsLayer[data-anim].win #vsArena{top:20vh!important}
+/* ===== easter egg Mati ===== */
+#vsLayer.egg #vsArena,#vsLayer.egg .jj-mati,#vsLayer.egg .vs-title,#vsLayer.egg .vs-sub,#vsLayer.egg #vsHero{filter:brightness(.3) saturate(.5)!important;transition:filter .4s}
+/* ===== ganador en la variante Mati: bandas de cine + giro ===== */
+#vsLayer.lbx::before,#vsLayer.lbx::after{content:"";position:absolute;left:0;right:0;height:11vh;background:#000;z-index:40;animation:lbxIn .9s cubic-bezier(.7,0,.2,1) both}
+#vsLayer.lbx::before{top:0}
+#vsLayer.lbx::after{bottom:0}
+@keyframes lbxIn{from{height:0}}
+#vsLayer.lbx[data-anim].win .vs-title,#vsLayer.lbx[data-anim].win.up .vs-title{top:14vh!important;z-index:41}
+#vsLayer.lbx[data-anim].win #vsArena{top:26vh!important;bottom:13vh}
+#vsLayer.lbx #vsSkip{bottom:calc(11vh + 12px);z-index:41}
+#vsLayer.twist #vsArena .vs-card{transition:transform .8s cubic-bezier(.5,0,.75,0),opacity .8s;transform:translate(var(--kx),-30vh) rotate(var(--kr)) scale(.6)!important;opacity:0}
+#vsLayer.twist .vs-team-name{transition:opacity .4s;opacity:0}
+/* rayos persistentes tras liberar el poder de Mati */
+/* =====================================================================
+   PERSPECTIVA 3D para kawaii, cine (Tierra), bruh y reggaetón:
+   sin rectángulos, equipos encarados en 3D, cámara en movimiento.
+   ===================================================================== */
+#vsLayer.p3d{perspective:1100px;perspective-origin:50% 38%}
+#vsLayer.p3d #vsArena{overflow:visible;transform-style:preserve-3d}
+#vsLayer.p3d .vs-team,#vsLayer.p3d .vs-grid{transform-style:preserve-3d}
+#vsLayer.p3d .vs-team{background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;outline:none!important;clip-path:none!important;border-radius:0}
+#vsLayer.p3d .vs-card{transform-style:preserve-3d;transform:translateZ(var(--z,0px))}
+#vsLayer.p3d .vs-card:nth-child(3n+1){--z:34px}
+#vsLayer.p3d .vs-card:nth-child(3n+2){--z:-18px}
+#vsLayer.p3d .vs-card:nth-child(3n){--z:12px}
+#vsLayer.p3d .vs-team-name{transform:translateZ(60px)}
+#vsLayer.p3d .vs-badge{transform:translateZ(120px)}
+/* sombra de suelo bajo cada equipo, para dar profundidad */
+#vsLayer.p3d .vs-team::after{content:"";position:absolute;left:8%;right:8%;bottom:-6%;height:22%;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.35),transparent 70%);transform:rotateX(80deg);pointer-events:none}
+/* ---- KAWAII: dos nubes de cartas que flotan y se miran ---- */
+/* ---- CINE (Tierra): dos líneas de reparto que convergen; cámara que orbita despacio ---- */
+/* ---- BRUH: la cámara salta de ángulo a lo bruto; cartas tiradas sobre el suelo ---- */
+/* ---- REGGAETÓN: equipos que bailan en 3D y acaban en un carrusel giratorio ---- */
+#vsLayer.p3d .vs-team.ring-on .vs-card{transform:translate(var(--tx),var(--ty)) rotateY(calc(var(--a) + 90deg + var(--spin))) translateZ(var(--r3)) rotateY(calc(-1 * (var(--a) + 90deg + var(--spin)))) scale(var(--sc,1))}
+#vsLayer.p3d .shape-bg.ring{transform:translate(-50%,-50%) translateY(calc(var(--card) * .9)) rotateX(78deg);-webkit-mask:none;mask:none;background:repeating-conic-gradient(from 0deg,rgba(255,47,160,.6) 0 15deg,rgba(0,255,240,.45) 15deg 30deg,rgba(255,225,77,.5) 30deg 45deg);border-radius:50%;box-shadow:0 0 60px rgba(255,47,160,.7)}
+@media (max-width:640px){
+  #vsLayer.p3d .vs-team.from-l,#vsLayer.p3d .vs-team.from-r{transform:rotateX(10deg)!important}
+}
+/* ===== Fast & Furious: bandas de cine y rótulos ===== */
+.three-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.three-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.three-flash.go{animation:threeFlash 1.1s ease-out}
+@keyframes threeFlash{0%{opacity:0}6%{opacity:1}100%{opacity:0}}
+.team .members li{animation:memberIn .45s cubic-bezier(.2,.9,.25,1.2) both}
+@keyframes memberIn{from{opacity:0;transform:translateX(-10px)}}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}
+}

@@ -1,0 +1,43 @@
+#vsLayer[data-anim="bruh"]{background:#7a7a7a}
+#vsLayer[data-anim="bruh"].active.intro{animation:none}
+#vsLayer[data-anim="bruh"] .vign{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.65) 100%)}
+#vsLayer[data-anim="bruh"] #vsHero{border:0;border-radius:0;box-shadow:0 0 0 5px #000;animation:none;rotate:-2deg;transition:top .5s steps(3),height .5s steps(3),transform .5s steps(3)}
+#vsLayer[data-anim="bruh"].up #vsHero{border-width:0;border-radius:0;animation:none;rotate:3deg}
+#vsLayer[data-anim="bruh"] .vs-title{font:400 clamp(34px,6.4vw,78px)/1 Impact,"Anton","Arial Narrow",sans-serif;color:#fff;-webkit-text-stroke:2px #000;text-shadow:3px 3px 0 #000;letter-spacing:.01em;top:23vh}
+#vsLayer[data-anim="bruh"].up .vs-title{animation:none;opacity:1;rotate:-4deg}
+#vsLayer[data-anim="bruh"] #vsArena{top:33vh;transition:none}
+#vsLayer[data-anim="bruh"] #vsArena.punch{animation:punch .55s step-end}
+@keyframes punch{0%{transform:scale(1.7) rotate(var(--tilt,4deg))}100%{transform:none}}
+#vsLayer[data-anim="bruh"] .vs-team{background:#d4d4d4;border-radius:0;box-shadow:6px 6px 0 #000;outline:3px solid #000}
+#vsLayer[data-anim="bruh"] .vs-team.from-l,#vsLayer[data-anim="bruh"] .vs-team.from-r{animation:none}
+#vsLayer[data-anim="bruh"] .vs-team-name{font:400 clamp(14px,1.6vw,20px)/1 Impact,"Anton",sans-serif;text-transform:uppercase;color:#000}
+#vsLayer[data-anim="bruh"] .vs-face{border-radius:0;box-shadow:0 0 0 3px #000}
+#vsLayer[data-anim="bruh"] .vs-card.landed .vs-face{animation:none;rotate:var(--tilt,0deg)}
+#vsLayer[data-anim="bruh"] .vs-card.landed .vs-face::after{animation:none}
+#vsLayer[data-anim="bruh"] .vs-nm{font:400 calc(var(--nfs,13px) * 1.2)/1 Impact,"Anton",sans-serif;color:#fff;-webkit-text-stroke:1px #000;text-shadow:2px 2px 0 #000;background:none;box-shadow:none;transition:none}
+#vsLayer[data-anim="bruh"] .vs-lane{transition:none}
+#vsLayer[data-anim="bruh"] .vs-badge{background:none;box-shadow:none;border-radius:0;font:400 calc(var(--vsw,84px) * .7)/1 Impact,"Anton",sans-serif;font-style:normal;color:#fff;-webkit-text-stroke:2px #000;text-shadow:4px 4px 0 #000;rotate:-8deg;animation:none}
+#vsLayer[data-anim="bruh"] .vs-badge span{animation:none}
+#vsLayer[data-anim="bruh"].shake{animation:bruhShake .2s steps(2)}
+#vsLayer[data-anim="bruh"].done #vsArena{filter:saturate(3.2) contrast(1.7) brightness(1.05)}
+#vsLayer[data-anim="bruh"].done .vs-title{filter:saturate(3) contrast(1.5)}
+#vsLayer[data-anim="bruh"] #vsSkip{background:#fff;color:#000;border-radius:0;box-shadow:4px 4px 0 #000;outline:3px solid #000;font:400 18px/1 Impact,"Anton",sans-serif;transition:none}
+#vsLayer[data-anim="bruh"].done #vsSkip{animation:none}
+#vsLayer[data-anim="bruh"].closing{animation:none;opacity:0}
+#vsLayer[data-anim="bruh"].done .vs-team.from-l{animation:bEndL .01s step-end forwards}
+#vsLayer[data-anim="bruh"].done .vs-team.from-r{animation:bEndR .01s step-end forwards}
+#vsLayer[data-anim="bruh"].done .vs-badge{animation:bEndVs .01s step-end forwards;z-index:2}
+#vsLayer[data-anim="bruh"].win.done .vs-team.from-l{animation:none;transform:rotate(-4deg) scale(1.06)}
+#vsLayer[data-anim="bruh"] .vs-team.shaped .vs-card{transition:none}
+#vsLayer.p3d[data-anim="bruh"] #vsArena{animation:camB 2.6s step-end infinite}
+@keyframes camB{0%{transform:rotateX(18deg) rotateY(-14deg) rotateZ(-3deg)}25%{transform:rotateX(-6deg) rotateY(22deg) rotateZ(4deg) scale(1.05)}50%{transform:rotateX(30deg) rotateY(4deg) rotateZ(-6deg)}75%{transform:rotateX(6deg) rotateY(-24deg) rotateZ(2deg) scale(.95)}}
+#vsLayer.p3d[data-anim="bruh"] #vsArena.punch{animation:punch .55s step-end}
+#vsLayer.p3d[data-anim="bruh"] .vs-team.from-l{transform:rotateY(24deg) rotateZ(-3deg)}
+#vsLayer.p3d[data-anim="bruh"] .vs-team.from-r{transform:rotateY(-24deg) rotateZ(4deg)}
+#vsLayer.p3d[data-anim="bruh"].done .vs-team.from-l{animation:none;transform:rotateX(26deg) rotateY(14deg)}
+#vsLayer.p3d[data-anim="bruh"].done .vs-team.from-r{animation:none;transform:rotateX(26deg) rotateY(-14deg)}
+#vsLayer.p3d[data-anim="bruh"] .vs-team-name{background:#fff;padding:4px 8px;outline:3px solid #000}
+#vsLayer.p3d[data-anim="bruh"] .vs-face{box-shadow:0 0 0 3px #000,8px 8px 0 rgba(0,0,0,.5)}
+@media (max-width:640px){
+  #vsLayer.p3d[data-anim="bruh"].done .vs-team.from-l,#vsLayer.p3d[data-anim="bruh"].done .vs-team.from-r{transform:rotateX(40deg)!important}
+}

@@ -1,0 +1,24 @@
+#vsLayer[data-anim]:not([data-anim="kawaii"]) .vs-rays,
+#vsLayer[data-anim]:not([data-anim="kawaii"]) #heartOrbit,
+#vsLayer[data-anim]:not([data-anim="kawaii"]) .vs-sparkles{display:none}
+#vsLayer[data-anim]:not([data-anim="kawaii"]){backdrop-filter:none;-webkit-backdrop-filter:none}
+#vsLayer[data-anim]:not([data-anim="kawaii"]) .vs-team{backdrop-filter:none;-webkit-backdrop-filter:none}
+#vsLayer[data-anim="kawaii"].done .vs-team.from-l{animation:kEndL 1s cubic-bezier(.2,.9,.25,1.3) forwards}
+#vsLayer[data-anim="kawaii"].done .vs-team.from-r{animation:kEndR 1s cubic-bezier(.2,.9,.25,1.3) forwards}
+@keyframes kEndL{to{transform:rotate(-3deg) translateY(-6px)}}
+@keyframes kEndR{to{transform:rotate(3deg) translateY(-6px)}}
+#vsLayer[data-anim="kawaii"] .vs-team.shaped{background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+#vsLayer.p3d[data-anim="kawaii"] #vsArena{animation:camK 7s ease-in-out infinite alternate}
+@keyframes camK{from{transform:rotateX(8deg) rotateY(-7deg)}to{transform:rotateX(2deg) rotateY(7deg)}}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team.from-l{animation:k3InL 1.1s cubic-bezier(.2,.9,.25,1.2) both,k3Float 3.2s ease-in-out 1.1s infinite}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team.from-r{animation:k3InR 1.1s cubic-bezier(.2,.9,.25,1.2) both,k3Float 3.2s ease-in-out 1.6s infinite}
+@keyframes k3InL{from{opacity:0;transform:translateX(-30vw) translateZ(-900px) rotateY(80deg)}to{transform:rotateY(18deg)}}
+@keyframes k3InR{from{opacity:0;transform:translateX(30vw) translateZ(-900px) rotateY(-80deg)}to{transform:rotateY(-18deg)}}
+@keyframes k3Float{0%,100%{translate:0 0 0}50%{translate:0 -12px 40px}}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team.from-l{transform:rotateY(18deg)}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team.from-r{transform:rotateY(-18deg)}
+#vsLayer.p3d[data-anim="kawaii"].done .vs-team.from-l{animation:k3Float 3.2s ease-in-out infinite;transform:rotateY(12deg) rotateX(6deg)}
+#vsLayer.p3d[data-anim="kawaii"].done .vs-team.from-r{animation:k3Float 3.2s ease-in-out .5s infinite;transform:rotateY(-12deg) rotateX(6deg)}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team{transition:transform 1.2s cubic-bezier(.2,.9,.25,1.2)}
+#vsLayer.p3d[data-anim="kawaii"] .vs-team-name{background:#fff;padding:6px 12px;border-radius:999px;box-shadow:0 6px 18px -6px rgba(233,62,159,.6)}
+#vsLayer.p3d[data-anim="kawaii"] .shape-bg.heart{transform:translate(-50%,-50%) translateZ(-60px)}
