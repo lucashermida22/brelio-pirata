@@ -16,8 +16,8 @@
     {
       "binding": "DB",
       "database_name": "brelio",
-      // PLACEHOLDER: pegar aquí el id que imprime `wrangler d1 create brelio`
-      "database_id": "00000000-0000-0000-0000-000000000000"
+      // base D1 "brelio" (WEUR), creada el 22-10-2026
+      "database_id": "6aad854d-cebd-4f33-bf5c-372122d911ba"
     }
   ],
   "vars": {
