@@ -2,6 +2,9 @@
 // sintetizado (Web Audio) y la base común de las escenas Three.js.
 // Las animaciones las reciben por `ctx.kit`; no las importan directamente.
 import { $ } from '../util.js';
+export { $, $$, rand, shuffle, esc, toast, webglOK } from '../util.js';
+export { photoFor, emojiFor, faceInner, EMOJIS } from '../photos.js';
+export { LANE_COLORS } from '../teams.js';
 import { vs } from './state.js';
 import { emojiFor } from '../photos.js';
 import { LANE_COLORS } from '../teams.js';

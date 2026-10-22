@@ -52,6 +52,7 @@ export async function init() {
     let rows;
     try { rows = await req('/api/players'); }
     catch (e) { if (e instanceof AuthError && await login()) rows = await req('/api/players'); else throw e; }
+    if (!Array.isArray(rows)) throw new NoApi('Sin Worker');
     backend.mode = 'remote';
     backend.cache = rows;
     req('/api/me').then((m) => { backend.user = m.user; }).catch(() => {});
@@ -129,7 +130,68 @@ export async function patchPlayer(id, fields) {
   return p;
 }
 
-// Importa una sola vez las asignaciones del localStorage v1 al Worker
+const normName = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+// Sube a R2 las fotos que solo existían en este navegador (claves local/…) y devuelve la clave definitiva
+async function photoToRemote(p) {
+  const key = p.photo_key;
+  if (!key || !key.startsWith('local/')) return key || null;
+  try {
+    const blob = await (await fetch(mediaUrl(key))).blob();
+    return (await uploadMedia(new File([blob], p.name + '.jpg', { type: 'image/jpeg' }), 'jugadores')).key;
+  } catch (e) { return null; }
+}
+
+// Jugadores con los que arrancar un Worker vacío: los de este navegador (v1: brelio-people +
+// brelio-assign; o v2 local) o, si no hay nada, los 8 de siempre.
+function seedCandidates() {
+  let list = legacyPlayers();
+  if (!list.length) list = (localPlayers() || []).filter((p) => p && p.name);
+  if (!list.length) list = DEMO_PLAYERS.map((name) => ({ name, photo_key: null }));
+  return list;
+}
+
+// Si otra pestaña está sembrando a la vez, espera a que la lista deje de crecer (máx. ~4 s)
+async function settle(list) {
+  for (let i = 0; i < 10; i++) {
+    await new Promise((r) => setTimeout(r, 400));
+    const next = await req('/api/players');
+    if (next.length === list.length) return next;
+    list = next;
+  }
+  return list;
+}
+
+// Si el Worker no tiene jugadores, los siembra una sola vez. Es idempotente aunque dos personas
+// abran la web a la vez: vuelve a pedir la lista justo antes de crear, se salta los nombres que
+// ya existen y, al terminar, borra los duplicados creados en la carrera (se queda con el más antiguo).
+export async function seedPlayers(current) {
+  if (backend.mode !== 'remote' || (current && current.length)) return current || [];
+  ls.set('brelio-migrated-v2', '1');
+  const wanted = seedCandidates();
+  let have = await req('/api/players');
+  if (have.length) return settle(have);               // otro se nos adelantó: esperamos a que termine
+  const names = new Set(have.map((p) => normName(p.name)));
+  for (const p of wanted) {
+    if (names.has(normName(p.name))) continue;
+    names.add(normName(p.name));
+    try { await addPlayer(p.name, await photoToRemote(p)); } catch (e) { /* fallo suelto: se queda sin sembrar */ }
+  }
+  have = await req('/api/players');
+  const seeded = new Set(wanted.map((p) => normName(p.name)));
+  const first = new Map(), extra = [];
+  [...have].sort((a, b) => (a.created_at - b.created_at) || (a.id < b.id ? -1 : 1)).forEach((p) => {
+    const k = normName(p.name);
+    if (seeded.has(k) && first.has(k)) extra.push(p); else first.set(k, p);
+  });
+  if (extra.length) {
+    await Promise.all(extra.map((p) => req('/api/players/' + encodeURIComponent(p.id), { method: 'DELETE' }).catch(() => {})));
+    have = await req('/api/players');
+  }
+  return settle(have);
+}
+
+// Importa una sola vez las asignaciones del localStorage v1 al Worker (si ya hay jugadores allí)
 export async function migrateLegacy(remotePlayers) {
   if (backend.mode !== 'remote' || ls.get('brelio-migrated-v2')) return false;
   const old = legacyPlayers();
@@ -139,12 +201,7 @@ export async function migrateLegacy(remotePlayers) {
   let n = 0;
   for (const p of old) {
     if (have.has(p.name.toLowerCase())) continue;
-    let key = p.photo_key;
-    if (key && key.startsWith('local/')) {
-      try { const blob = await (await fetch(mediaUrl(key))).blob(); key = (await uploadMedia(new File([blob], p.name + '.jpg', { type: 'image/jpeg' }), 'jugadores')).key; }
-      catch (e) { key = null; }
-    }
-    try { await addPlayer(p.name, key); n++; } catch (e) { /* ya existe o fallo suelto */ }
+    try { await addPlayer(p.name, await photoToRemote(p)); n++; } catch (e) { /* ya existe o fallo suelto */ }
   }
   return n > 0;
 }

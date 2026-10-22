@@ -6,4 +6,4 @@ Esto es entre amigos: no hay reglas ni revisiones.
 - **Canciones, fotos, imágenes y gifs**: súbelas desde la página «Recursos» de la web, sin pasar por git.
 - **Ideas**: abre un issue o cuéntalo en el grupo.
 
-Todo esto llegará cuando esté montado Cloudflare; el plan está en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md). Mientras tanto, rama y `build/` como siempre.
+Para meter una animación: una carpeta en `animations/` (mira «Añadir una animación» en el [`README.md`](README.md)) y `npm run dev` para verla. El plan de Cloudflare está en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).

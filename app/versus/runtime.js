@@ -1,12 +1,10 @@
 // Runtime del overlay «versus»: carga las animaciones de /animations, prepara el
 // escenario, la música, la limpieza al cerrar, Esc y los huevos de pascua.
 // Cada animación solo cuenta su historia a través del `ctx` (ver docs/ARQUITECTURA.md).
-import { $, rand, esc, toast, webglOK } from '../util.js';
+import { $, rand, toast, webglOK } from '../util.js';
 import { loadAudio, loadImage, loadMedia, urlOf } from '../media.js';
 import { vs } from './state.js';
 import * as kit from './kit.js';
-import { photoFor, emojiFor, faceInner, EMOJIS } from '../photos.js';
-import { LANE_COLORS } from '../teams.js';
 import { dom } from './dom.js';
 
 const loaders = import.meta.glob('/animations/*/index.js');   // un módulo por carpeta, carga perezosa
@@ -43,6 +41,16 @@ export function prefetch(id) {
   if (m.song) loadAudio(m.song, { loop: !!m.songLoop });
   loadImage(m.hero || 'comun/hero.jpg');
   (m.media || []).forEach((k) => loadMedia(k));
+  if (m.warm && !m._warm && webglOK()) m._warm = Promise.resolve(m.warm()).catch(() => { m._warm = null; });
+}
+
+// Cuando el navegador está libre, calienta todas las animaciones (módulos, Three.js, canciones)
+export function warmAll() {
+  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 800));
+  let i = 0;
+  const ids = order.slice();
+  const next = () => { if (i < ids.length) { prefetch(ids[i++]); idle(next, { timeout: 3000 }); } };
+  idle(next, { timeout: 3000 });
 }
 
 // ---- sonido ----------------------------------------------------------------
@@ -64,10 +72,13 @@ function clearTimers() { vs.timers.forEach((t) => { clearTimeout(t); clearInterv
 function runTeardown() { const fns = vs.teardown; vs.teardown = []; vs.types = []; vs.holdClosing = null; fns.forEach((f) => { try { f(); } catch (e) { console.error(e); } }); }
 
 let runId = 0;
+let closing = null;   // { timer, finish } mientras dura el fundido de cierre
+function flushClosing() { if (!closing) return; const c = closing; closing = null; clearTimeout(c.timer); c.finish(); }
 
 // ---- reproducir -------------------------------------------------------------
 export async function play(teams, onDone, opts = {}) {
   const layer = $('#vsLayer'), arena = $('#vsArena'), fx = $('#vsFx');
+  flushClosing();   // si aún se estaba cerrando la anterior, la terminamos ya (su `finish` no debe pisar esta)
   clearTimers(); runTeardown();
   stopSounds(false);
   if (vs.fxStop) { vs.fxStop(); vs.fxStop = null; }
@@ -96,7 +107,7 @@ export async function play(teams, onDone, opts = {}) {
   document.body.classList.add('party-mode');
 
   // el módulo de la animación + su canción, sin pasarse esperando
-  const song = A.song ? await loadAudio(A.song, { loop: !!A.songLoop }) : null;
+  const song = A.song ? await loadAudio(A.song, { loop: !!A.songLoop, timeout: 1200 }) : null;
   if (!vs.open || vs.run !== run) return;
   vs.song = song;
 
@@ -109,6 +120,7 @@ export async function play(teams, onDone, opts = {}) {
     }
     song.volume = 1; song.playbackRate = 1;
     try { song.currentTime = at; } catch (e) { /* aún sin metadatos */ }
+    if (song.readyState < 1) song.addEventListener('loadedmetadata', () => { try { song.currentTime = at; } catch (e) { /* nada */ } }, { once: true });
     song.play().catch(() => {});
   }
 
@@ -116,7 +128,7 @@ export async function play(teams, onDone, opts = {}) {
 
   const ctx = {
     id, A, key, variant, teams, win, matchWin: !!opts.matchWin, opts,
-    stage: layer, fx, arena, song, kit: { ...kit, dom, $, rand, esc, toast, photoFor, emojiFor, faceInner, EMOJIS, LANE_COLORS },
+    stage: layer, fx, arena, song, kit: { ...kit, dom },
     isOpen: () => vs.open && vs.run === run,
     later: (fn, ms) => { const t = setTimeout(fn, ms); vs.timers.push(t); return t; },
     every: (fn, ms) => { const t = setInterval(fn, ms); vs.timers.push(t); return t; },
@@ -151,6 +163,7 @@ export function closeVersus() {
   const layer = $('#vsLayer');
   stopSounds(true);
   const finish = () => {
+    closing = null;
     if (vs.fxStop) { vs.fxStop(); vs.fxStop = null; }
     runTeardown();
     layer.className = ''; $('#vsArena').innerHTML = ''; $('#vsFx').innerHTML = '';
@@ -160,7 +173,7 @@ export function closeVersus() {
   if (reduced || !layer.classList.contains('active')) return finish();
   if (vs.onClosing) vs.onClosing();
   layer.classList.add('closing');
-  setTimeout(finish, 430);
+  closing = { finish, timer: setTimeout(finish, 430) };
 }
 
 export const isOpen = () => vs.open;

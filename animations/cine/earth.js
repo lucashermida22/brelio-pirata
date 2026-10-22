@@ -1,4 +1,5 @@
 // Tierra 3D para la intro de cine: textura procedural, nubes, atmósfera y amanecer.
+import { noiseFactory, flareCanvas } from '@kit';
 let EARTH_TEX = null;
 function earthTextures(){
   if (EARTH_TEX) return EARTH_TEX;
@@ -36,6 +37,7 @@ function earthTextures(){
 }
 
 
+export const warmEarth = () => { earthTextures(); };   // genera las texturas por adelantado
 export function cineEarth(ctx, canvas){
   const A = ctx.A, T = ctx.kit.threeNS(), glowCanvas = ctx.kit.glowCanvas; let W = innerWidth, H = innerHeight, renderer;
   try { renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: false }); } catch(e) { return null; }

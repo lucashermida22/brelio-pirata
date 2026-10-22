@@ -7,5 +7,6 @@ export default {
   order: 30,
   key: 'cine', variant: 'classic',
   ...CINE,
+  warm: null,
   play: (ctx) => playCine(ctx, true),
 };

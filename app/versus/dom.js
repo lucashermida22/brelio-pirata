@@ -89,7 +89,14 @@ export function play(ctx, cfg = {}) {
   const { A, teams, win, key, stage: layer, arena, fx, later } = ctx;
   fx.innerHTML = cfg.fx ? cfg.fx(ctx) : '';
   if (cfg.p3d) layer.classList.add('p3d');
-  if (cfg.fxStart) { const stop = cfg.fxStart(ctx, fx); if (stop) ctx.setStop(stop); }
+  if (cfg.fxStart) {
+    const t0 = performance.now();
+    const stop = cfg.fxStart(ctx, fx); if (stop) ctx.setStop(stop);
+    // montar el fondo (p. ej. la Tierra 3D) bloquea un momento; los temporizadores empiezan después,
+    // así que la canción retrocede ese rato para seguir cuadrada con ellos
+    const lag = (performance.now() - t0) / 1000;
+    if (lag > .05 && ctx.song && !ctx.song.paused) { try { ctx.song.currentTime = Math.max(0, ctx.song.currentTime - lag); } catch (e) { /* nada */ } }
+  }
   cfg.start && cfg.start(ctx);
 
   const pool = [...new Set([...(state.pool || []), ...teams.flatMap((t) => t.members.map((m) => photoFor(m.name)))])].filter(Boolean);

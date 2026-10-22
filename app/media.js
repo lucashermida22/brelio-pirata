@@ -18,7 +18,7 @@ export function loadImage(keyOrUrl) {
 }
 
 // <audio> con los metadatos cargados. Se reutiliza el mismo elemento por clave.
-export function loadAudio(key, { loop = false } = {}) {
+export function loadAudio(key, { loop = false, timeout = 6000 } = {}) {
   if (!key) return Promise.resolve(null);
   let rec = auds.get(key);
   if (!rec) {
@@ -36,8 +36,8 @@ export function loadAudio(key, { loop = false } = {}) {
     auds.set(key, rec);
   }
   rec.a.loop = loop;
-  // no esperamos eternamente: tras 6 s seguimos con lo que haya
-  return Promise.race([rec.ready, wait(6000).then(() => rec.a)]);
+  // no esperamos eternamente: pasado `timeout` seguimos con lo que haya (suena en cuanto llegue)
+  return Promise.race([rec.ready, wait(timeout).then(() => rec.a)]);
 }
 
 // Resuelve cualquier clave según su extensión

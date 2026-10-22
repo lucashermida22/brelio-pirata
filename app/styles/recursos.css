@@ -1,0 +1,50 @@
+/* ===== Página «Recursos» (mismas piezas que la agenda: card, chip, prow, btn…) ===== */
+.links a{font-size:14px;font-weight:500;color:var(--text);padding:6px 12px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;text-decoration:none}
+.links a:hover{background:var(--well)}
+.links a[aria-current="page"]{background:var(--well);color:var(--ink)}
+.nav-rec{display:none;align-items:center;text-decoration:none}
+@media (max-width:900px){.nav-rec{display:inline-flex}}
+@media (max-width:520px){.nav-rec{display:inline-flex}}
+a.icon-btn{text-decoration:none}
+code{font:500 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--well);padding:2px 6px;border-radius:6px;color:var(--text)}
+
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;padding:26px 16px;border:1px dashed var(--line);border-radius:var(--r-card);background:#fff;color:var(--grey);cursor:pointer;transition:border-color .18s,background .18s,transform .18s}
+.drop svg{width:22px;height:22px;stroke:var(--muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-bottom:4px}
+.drop b{font:600 15px/1.3 var(--f-head);color:#3f3f46}
+.drop span{font-size:13px}
+.drop:hover,.drop.over{border-color:var(--focus);background:var(--accent-soft)}
+.drop.over{transform:scale(1.01)}
+.drop.off{opacity:.55;cursor:not-allowed;pointer-events:none}
+#recFolder,#newFolderRow{margin-top:8px}
+#newFolderRow[hidden]{display:none}
+
+.upl{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto}
+.urow{position:relative;display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 10px;min-height:44px;padding:6px 10px 10px;border:1px solid var(--ring);border-radius:var(--r-ctl);overflow:hidden}
+.uname{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ustate{font-size:11px;color:var(--grey);font-variant-numeric:tabular-nums;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ubar{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--well)}
+.ubar i{display:block;height:100%;width:0;background:var(--focus);transition:width .15s}
+.urow.ok .ubar i{background:var(--success)}.urow.ok .ustate{color:var(--success)}
+.urow.err .ubar i{width:100%;background:#dc2626}.urow.err .ustate{color:#dc2626}
+
+.chips button.chip{cursor:pointer;font-family:inherit}
+.chips button.chip:hover{background:var(--field)}
+.chips button.chip[aria-pressed="true"]{border-color:#bcd2f5;background:var(--accent-soft);color:var(--accent)}
+.chips button.chip[aria-pressed="true"] b{background:#fff;color:var(--accent)}
+
+.rlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:560px;overflow:auto}
+.rrow{display:flex;align-items:center;gap:10px;min-height:56px;padding:0 6px 0 10px;border:1px solid var(--ring);border-radius:var(--r-ctl)}
+.rrow:hover{border-color:var(--line)}
+.rthumb{width:36px;height:36px;flex:none;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--well);display:grid;place-items:center;overflow:hidden;padding:0;color:var(--muted);position:relative}
+.rthumb img,.rthumb video{width:100%;height:100%;object-fit:cover;display:block}
+.rthumb svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+button.rthumb{cursor:pointer}
+button.rplay{background:#fff}
+button.rplay:hover{background:var(--field);color:var(--ink)}
+.rinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rkey{font:500 13px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rmeta{font-size:11px;color:var(--grey)}
+.rrow .x svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.rrow .x:hover{background:var(--well);color:var(--ink)}
+.rrow .x.armed{background:#fef2f2;color:#dc2626}
+#recEmpty[hidden]{display:none}
