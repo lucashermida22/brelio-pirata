@@ -128,21 +128,21 @@ export async function playFurious(X){
   const terrShadow = new T.Mesh(tg, shadowM); terrShadow.receiveShadow = true; scene.add(terrShadow);
 
   // árboles: pinos piñoneros, cipreses y encinas a lo largo de los caminos
-  const TN2 = narrow ? 900 : 2200, TB = TN2 * 2;
+  const TN2 = narrow ? 900 : 2200, TB = TN2 * 2, treeRec = []; let curBase = null;
   const trunkG = new T.CylinderGeometry(.16, .3, 1, 6); trunkG.translate(0, .5, 0);
   const blobG = new T.IcosahedronGeometry(1, 1), coneG = new T.ConeGeometry(1, 1, 8); coneG.translate(0, .5, 0);
   const leafM = new T.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
   const trunks = new T.InstancedMesh(trunkG, new T.MeshLambertMaterial({ color: 0x4a3426 }), TN2);
   const blobs = new T.InstancedMesh(blobG, leafM, TB), cones = new T.InstancedMesh(coneG, leafM, TN2);
   { const d = new T.Object3D(), cc = new T.Color(); let nt = 0, nb = 0, nc = 0;
-    const put = (im, i, x, y, z, sx, sy, sz, ry0) => { d.position.set(x, y, z); d.scale.set(sx, sy, sz); d.rotation.set(0, ry0, 0); d.updateMatrix(); im.setMatrixAt(i, d.matrix); };
+    const put = (im, i, x, y, z, sx, sy, sz, ry0) => { d.position.set(x, y, z); d.scale.set(sx, sy, sz); d.rotation.set(0, ry0, 0); d.updateMatrix(); im.setMatrixAt(i, d.matrix); treeRec.push({ im, i, x, y, z, sx, sy, sz, r0: ry0, b: curBase }); };
     for (let tries = 0; tries < TN2 * 3 && nt < TN2 && nb < TB - 2; tries++){
       const z = 640 - Math.random() * 1900, side = Math.random() < .5 ? -1 : 1;
       // arboledas: se agrupan en bosquecillos, alguno muy pegado al arcén
       const grove = nz3(z * .02, 9, side * 3) > -.1, off = 10.5 + Math.pow(Math.random(), grove ? 1.1 : 2.2) * (grove ? 90 : 220);
       const base = z > zF ? xm(z) : xb(rand(n), z), x = base + side * off + (Math.random() - .5) * 6;
       if (roadDist(x, z) < 10.5) continue;
-      const y = Hgt(x, z) - .2, s = .6 + Math.random() * .55, r0 = Math.random() * 6.28, kind = Math.random();
+      const y = Hgt(x, z) - .2; curBase = [x, y, z]; const s = .6 + Math.random() * .55, r0 = Math.random() * 6.28, kind = Math.random();
       if (kind < .38){ // pino piñonero: tronco alto, copa en paraguas
         const h = 5.5 * s; put(trunks, nt++, x, y, z, s, h, s, r0);
         cc.setHSL(.24 + Math.random() * .06, .32, .14 + Math.random() * .07); put(blobs, nb, x, y + h, z, 2.5 * s, .85 * s, 2.3 * s, r0); blobs.setColorAt(nb++, cc);
@@ -434,33 +434,81 @@ export async function playFurious(X){
   }
   // el negro y el «JODER, ÁLVARO»
   const alvEnd = document.createElement('div'); alvEnd.className = 'ff-alv'; alvEnd.innerHTML = '<b>JODER, ÁLVARO</b><small>no queda ningún equipo</small>'; ov.appendChild(alvEnd);
-  const alvEgg = () => {
+  const alvEgg = (nuke) => {
     if (!X.isOpen() || layer.dataset.anim !== 'furious' || !cv.isConnected) return false;
     if (alv || egg || st > tWhite - 3.2) return true;
-    alv = { t0: st, boomAt: st + 4.4 };
+    alv = { t0: st, boomAt: st + 4.4, nuke: nuke === true };
+    if (alv.nuke) alvEnd.querySelector('small').textContent = 'no queda ni la carretera';
     tWhite = Infinity; tDone = Infinity;   // este final lo lleva el easter egg
     capM.dataset.k = 'alv'; capM.innerHTML = '<small>Álvaro</small><i></i><small>¿qué podría salir mal?</small>';
     S = S || synth(); S && S.riser && S.riser(4.2);
     return true;
   };
-  X.onType('alvaro', alvEgg);
+  X.onType('alvaro', () => alvEgg(false));
+  X.onType('nuclear', () => alvEgg(true));
+  // ---- versión nuclear: destello, bola de fuego, onda, nube de Wilson y hongo ----
+  const puffT = tex(glowCanvas([[0, 'rgba(255,255,255,.95)'], [.45, 'rgba(240,236,230,.6)'], [.8, 'rgba(225,220,214,.18)'], [1, 'rgba(220,215,210,0)']]));
+  let NK = null;
+  function nukeBoom(P){
+    const g = new T.Group(); scene.add(g);
+    const parts = [], mk = (kind, o) => { const sp = new T.Sprite(new T.SpriteMaterial({ map: puffT, transparent: true, depthWrite: false, opacity: 0, fog: false })); g.add(sp); parts.push(Object.assign({ s: sp, kind, j: Math.random() }, o)); };
+    for (let i = 0; i < (narrow ? 110 : 170); i++) mk('cap', { a: Math.random() * 6.28, b: Math.random() * 6.28, r: .55 + Math.random() * .5 });
+    for (let i = 0; i < (narrow ? 50 : 80); i++) mk('stem', { f: Math.random(), a: Math.random() * 6.28 });
+    for (let i = 0; i < (narrow ? 60 : 90); i++) mk('skirt', { a: Math.random() * 6.28, r: .6 + Math.random() * .6 });
+    const core = []; for (let i = 0; i < 14; i++){ const sp = new T.Sprite(new T.SpriteMaterial({ map: fireT, ...AB, opacity: 0, fog: false })); g.add(sp); core.push({ s: sp, a: Math.random() * 6.28, r: Math.random() }); }
+    const ball = new T.Mesh(new T.SphereGeometry(1, 32, 20), new T.MeshBasicMaterial({ color: 0xfff2c8, ...AB, opacity: 1, fog: false })); ball.position.copy(P); g.add(ball);
+    const dome = new T.Mesh(new T.SphereGeometry(1, 40, 20, 0, 6.29, 0, Math.PI / 2), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide, fog: false })); dome.position.copy(P); g.add(dome);
+    NK = { P: P.clone(), t: 0, g, parts, core, ball, dome, knocked: new Uint8Array(treeRec.length) };
+    // un destello que lo quema todo
+    flash.animate([{ opacity: 1 }, { opacity: 1, offset: .18 }, { opacity: 0 }], { duration: 2600, easing: 'ease-out' });
+    if (S){ S.rumble && S.rumble(6.5); S.boom(true); later(() => S && S.boom(true), 260); later(() => S && S.boom(true), 900); }
+  }
+  const nq = new T.Quaternion(), nq2 = new T.Quaternion(), nAx = new T.Vector3(), nUp = new T.Vector3(0, 1, 0), nO = new T.Object3D(), nV = new T.Vector3(), cHot = new T.Color(1, .78, .36), cCool = new T.Color(.5, .4, .35), cGlow = new T.Color(1, .45, .12);
+  function nukeTick(dt){
+    const N = NK; N.t += dt; const t = N.t, P = N.P;
+    const H = 165 * (1 - Math.exp(-t / 2.1)), capR = 18 + 40 * (1 - Math.exp(-t / 2.4)), tube = capR * .5, cool = Math.min(1, t / 5);
+    N.parts.forEach(p => {
+      let x, y, z, sc;
+      if (p.kind === 'cap'){ const b = p.b + t * .9, rr = capR + Math.cos(b) * tube * p.r; x = Math.cos(p.a) * rr; z = Math.sin(p.a) * rr; y = H + Math.sin(b) * tube * .65 * p.r; sc = tube * 1.5; }
+      else if (p.kind === 'stem'){ const f = p.f, rr = 5 + 5 * f + Math.sin(t * 2 + p.a) * 1.2; x = Math.cos(p.a + t * .4) * rr; z = Math.sin(p.a + t * .4) * rr; y = f * H * .92; sc = 11 + 7 * f; }
+      else { const rr = (20 + 90 * (1 - Math.exp(-t / 2.6))) * p.r; x = Math.cos(p.a) * rr; z = Math.sin(p.a) * rr; y = 3 + 6 * p.r * Math.min(1, t); sc = 16 + 14 * p.r; }
+      p.s.position.set(P.x + x, P.y + y, P.z + z); p.s.scale.setScalar(sc * Math.min(1, t * 1.6 + .2));
+      const glow = p.kind === 'skirt' ? .2 : p.kind === 'stem' ? Math.max(0, 1 - p.f) * .9 : .55;
+      p.s.material.color.copy(cHot).lerp(cCool, cool).lerp(cGlow, glow * (1 - cool * .55));
+      p.s.material.opacity = Math.min(.95, t * 2) * (p.kind === 'skirt' ? .7 : .92);
+    });
+    // corazón incandescente del hongo
+    N.core.forEach(c => { c.s.position.set(P.x + Math.cos(c.a + t) * capR * .5 * c.r, P.y + H + Math.sin(t * 2 + c.a) * 4, P.z + Math.sin(c.a + t) * capR * .5 * c.r); c.s.scale.setScalar(tube * 2.4); c.s.material.opacity = Math.max(0, .9 - t * .16); });
+    // bola de fuego que sube y se apaga, cúpula de condensación
+    const bk = Math.min(1, t / .7); N.ball.scale.setScalar(4 + 30 * (1 - Math.pow(1 - bk, 3))); N.ball.position.set(P.x, P.y + H * .8 * Math.min(1, t / 1.2), P.z); N.ball.material.opacity = Math.max(0, 1 - t / 2.2);
+    N.ball.material.color.setRGB(1, Math.max(.4, .95 - t * .25), Math.max(.1, .8 - t * .4));
+    N.dome.scale.setScalar(20 + 520 * Math.min(1, t / 1.6)); N.dome.material.opacity = t < .25 ? t * 2 : Math.max(0, .5 - (t - .25) * .45);
+    // la onda tumba y quema los árboles a su paso
+    const Rw = 420 * t, d = nO;
+    for (let i = 0; i < treeRec.length; i++){ if (N.knocked[i]) continue; const r = treeRec[i], dx = r.b[0] - P.x, dz = r.b[2] - P.z, dd = Math.hypot(dx, dz); if (dd > Rw) continue;
+      N.knocked[i] = 1; nAx.set(dz, 0, -dx).normalize(); nq.setFromAxisAngle(nAx, Math.min(1.45, 1.1 + 40 / (dd + 20)));
+      nV.set(r.x - r.b[0], r.y - r.b[1], r.z - r.b[2]).applyQuaternion(nq); d.position.set(r.b[0] + nV.x, r.b[1] + nV.y, r.b[2] + nV.z);
+      nq2.setFromAxisAngle(nUp, r.r0); d.quaternion.copy(nq).multiply(nq2); d.scale.set(r.sx, r.sy, r.sz); d.updateMatrix(); r.im.setMatrixAt(r.i, d.matrix); r.im.instanceMatrix.needsUpdate = true;
+      if (r.im.instanceColor){ r.im.setColorAt(r.i, tmp2.setRGB(.09, .07, .06)); r.im.instanceColor.needsUpdate = true; } }
+  }
   function alvBoom(P){
     alv.boom = P.clone(); impact();
+    if (alv.nuke) nukeBoom(P);
     if (S){ S.boom(true); later(() => S && S.boom(true), 140); later(() => S && S.boom(false), 420); }
     if (snd){ const v0 = snd.volume, t0 = performance.now(); const iv = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / 400); snd.volume = v0 * (1 - k); if (k >= 1){ clearInterval(iv); snd.pause(); } }, 30); }
     burst(P, true);
     boomLight.position.copy(P).add(tmp.set(0, 3, 0)); boomLight.intensity = 9;
     ring.position.copy(P).add(tmp.set(0, .25, 0)); ring.material.opacity = 1; ring.scale.setScalar(1);
+    if (alv.nuke){ boomLight.intensity = 40; boomLight.distance = 900; }
     // ya no hay equipo: todos los coches salen volando, con fuego
     cars.forEach((c, i) => {
       const d = c.g.position.clone().sub(P); d.y = 0; const r = Math.max(2, d.length()); d.normalize();
-      c.blast = { v: d.multiplyScalar(18 + 60 / r + Math.random() * 8).add(new T.Vector3(0, 12 + Math.random() * 12 + 30 / r, 0)), w: new T.Vector3((Math.random() - .5) * 8, (Math.random() - .5) * 8, (Math.random() - .5) * 8), delay: Math.min(.5, r / 60) };
+      const nk = alv.nuke ? 3.2 : 1;
+      c.blast = { v: d.multiplyScalar((18 + 60 / r + Math.random() * 8) * nk).add(new T.Vector3(0, (12 + Math.random() * 12 + 30 / r) * nk, 0)), w: new T.Vector3((Math.random() - .5) * 8, (Math.random() - .5) * 8, (Math.random() - .5) * 8), delay: Math.min(.5, r / 60) };
       later(() => { if (X.isOpen()) burst(c.g.position, false); }, c.blast.delay * 1000 + 80 + i * 40);
     });
     abike.visible = false;
-    later(() => { alvEnd.classList.add('on'); }, 3300);
-    later(() => { doneF = true; X.done(); }, 4300);
-    later(() => { closeF = true; X.close(); }, 4300 + (A.hold || 5200));
+    alv.tEnd = alv.nuke ? 7.2 : 3.3;   // en tiempo de la escena (el loop lo comprueba)
   }
 
   // ---- montaje (tiempos del clip original desde 1:52) ----
@@ -602,10 +650,16 @@ export async function playFurious(X){
       p.s.material.opacity = p.kind === 'fire' ? Math.pow(1 - k, 1.6) : Math.min(1, k * 4) * (1 - k) * .9;
     }
     if (boomLight.intensity > 0) boomLight.intensity = Math.max(0, boomLight.intensity - rdt * 5);
-    if (ring.material.opacity > 0){ ring.material.opacity = Math.max(0, ring.material.opacity - rdt * 1.1); ring.scale.setScalar(ring.scale.x + rdt * 90); }
+    if (ring.material.opacity > 0){ ring.material.opacity = Math.max(0, ring.material.opacity - rdt * 1.1); ring.scale.setScalar(ring.scale.x + rdt * (alv && alv.nuke ? 840 : 90)); }
+    if (NK) nukeTick(rdt);
+    if (alv && alv.boom && alv.tEnd && !alv.ended && st >= alv.boomAt + alv.tEnd){ alv.ended = true; alvEnd.classList.add('on');
+      later(() => { doneF = true; X.done(); }, 1000); later(() => { closeF = true; X.close(); }, 1000 + (A.hold || 5200)); }
     const L0 = sp(L0c, et), L1 = sp(L1c, et), L = L0.clone().add(L1).multiplyScalar(.5);
     let pos, look;
     if (kind === 'alvRide' && A3){ const w = smt(2.4, 4.2, u); pos = new T.Vector3(A3.x + 5.2 + 6 * w, A3.y + 1.6 + 3.5 * w, A3.z - 8.5 - 4 * w); look = new T.Vector3(A3.x - .4 * (1 - w), A3.y + 1.8 - .8 * w, A3.z + 1.2); }
+    else if (kind === 'alvBoom' && alv.nuke){ const P = alv.boom, k = ease(Math.min(1, u / 6.5));
+      pos = new T.Vector3(P.x + 130 + 90 * k, P.y + 38 + 30 * k, P.z - 300 - 180 * k); look = new T.Vector3(P.x, P.y + 45 + 55 * k, P.z);
+      const sh = Math.max(0, 1 - u / 3.5) * 5 * Math.min(1, u * 3); pos.x += (Math.random() - .5) * sh; pos.y += (Math.random() - .5) * sh; }
     else if (kind === 'alvBoom'){ const P = alv.boom, k = ease(Math.min(1, u / 4)); pos = new T.Vector3(P.x + 16 + 14 * k, P.y + 6 + 10 * k, P.z - 22 - 16 * k); look = new T.Vector3(P.x, P.y + 4 + 2 * k, P.z);
       const sh = Math.max(0, 1 - u / 1.6) * 1.6; pos.x += (Math.random() - .5) * sh; pos.y += (Math.random() - .5) * sh; }
     else if (kind === 'aerialBack'){ const k = ease(Math.min(1, u / 6.2)); pos = new T.Vector3(L.x + 9 - 4 * k, L.y + 46 - 22 * k, L.z + 46 - 14 * k); look = new T.Vector3(L.x, L.y, L.z - 30 + 8 * k); }
@@ -672,6 +726,7 @@ export async function playFurious(X){
     const ndc = tmp.copy(sunGlow.position).project(cam), hh = Math.tan(T.MathUtils.degToRad(cam.fov / 2)) * 40, hw = hh * cam.aspect, onS = ndc.z < 1 && Math.abs(ndc.x) < 1.3 && Math.abs(ndc.y) < 1.3 ? 1 : 0;
     ghosts.forEach(g => { const f = g.userData.f; g.position.set(ndc.x * hw * (1 - 2 * f), ndc.y * hh * (1 - 2 * f), -40); g.scale.setScalar(g.userData.s * .2); g.material.opacity = onS * (.12 + .3 * sunK); });
     scene.fog.near = 260 - 160 * sunK; scene.fog.color.setHex(0xe0a070).lerp(fogWhite, sunK * .6);
+    if (NK){ const h = Math.min(1, NK.t / 1.5); scene.fog.color.lerp(tmp2.setRGB(.62, .26, .1), h); scene.fog.near = 60; sky.material.uniforms.glow.value = 1 + 2.5 * Math.max(0, 1 - NK.t / 3); }
     // rótulos
     capT.style.opacity = !egg && !alv && et > .8 && et < 4.8 ? Math.min(1, (et - .8) * 1.2, (4.8 - et) * 1.2) : 0;
     const midKey = alv ? 'alv' : inside ? kind : ['cry', 'freeze', 'matiRide', 'together'].includes(kind) ? kind + (saved ? '+' : '') : '';

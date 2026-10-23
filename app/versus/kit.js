@@ -9,20 +9,8 @@ import { vs } from './state.js';
 import { emojiFor } from '../photos.js';
 import { LANE_COLORS } from '../teams.js';
 
-// ---- Three.js (carga perezosa: solo se descarga si una animación lo pide) ----
-let T = null;
-export const threeNS = () => T;
-export async function loadThree() {
-  if (T) return T;
-  const [core, ec, rp, bp] = await Promise.all([
-    import('three'),
-    import('three/examples/jsm/postprocessing/EffectComposer.js'),
-    import('three/examples/jsm/postprocessing/RenderPass.js'),
-    import('three/examples/jsm/postprocessing/UnrealBloomPass.js'),
-  ]);
-  T = { ...core, EffectComposer: ec.EffectComposer, RenderPass: rp.RenderPass, UnrealBloomPass: bp.UnrealBloomPass };
-  return T;
-}
+// ---- Three.js: el motor vive en gl.js (carga perezosa) ----
+export { loadThree, threeNS, glInit, GLSL_SRGB, quality } from './gl.js';
 
 export const loadImg = src => new Promise(r => { if (!src) return r(null); const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; });
 
@@ -98,6 +86,14 @@ export function synth(){
       const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(big ? 4000 : 2000, now()); f.frequency.exponentialRampToValueAtTime(90, now() + (big ? 1.5 : .3));
       const ng = ctx.createGain(); env(ng, .005, big ? .9 : .22, big ? 1.6 : .35); s.connect(f).connect(ng).connect(out); s.start(); s.stop(now() + 2);
     },
+    rumble(dur){   // estruendo largo y grave (explosión nuclear)
+      const s = ctx.createBufferSource(); s.buffer = nb; s.loop = true;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(1800, now()); f.frequency.exponentialRampToValueAtTime(60, now() + dur);
+      const g = ctx.createGain(); g.gain.setValueAtTime(.0001, now()); g.gain.exponentialRampToValueAtTime(1, now() + .04); g.gain.exponentialRampToValueAtTime(.0001, now() + dur);
+      s.connect(f).connect(g).connect(out); s.start(); s.stop(now() + dur + .05);
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(70, now()); o.frequency.exponentialRampToValueAtTime(22, now() + dur * .7);
+      const og = ctx.createGain(); env(og, .01, 1, dur); o.connect(og).connect(out); o.start(); o.stop(now() + dur + .05);
+    },
     zap(p){
       const o = ctx.createOscillator(); o.type = 'square';
       o.frequency.setValueAtTime(p, now()); o.frequency.exponentialRampToValueAtTime(p / 5, now() + .2);
@@ -160,31 +156,6 @@ export function flareCanvas(kind, rgb){
   return c;
 }
 
-// ---------- base común para escenas Three.js ----------
-export function glInit(opts = {}){
-  const T = threeNS(), fx = $('#vsFx');
-  const canvas = document.createElement('canvas'); canvas.className = 'three-cv'; fx.prepend(canvas);
-  let W = innerWidth, H = innerHeight, renderer;
-  try { renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); } catch(e) { canvas.remove(); return null; }
-  renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1)); renderer.setSize(W, H, false);
-  renderer.outputEncoding = T.sRGBEncoding; renderer.setClearColor(opts.clear ?? 0x000000, 1);
-  if (opts.clipping) renderer.localClippingEnabled = true;
-  const scene = new T.Scene(), cam = new T.PerspectiveCamera(opts.fov || 45, W / H, .1, 600);
-  let composer = null;
-  try { if (T.EffectComposer && T.UnrealBloomPass){ composer = new T.EffectComposer(renderer); composer.addPass(new T.RenderPass(scene, cam)); const b = opts.bloom || [.9, .5, .8]; composer.addPass(new T.UnrealBloomPass(new T.Vector2(W, H), b[0], b[1], b[2])); } } catch(e) { composer = null; }
-  const onResize = () => { W = innerWidth; H = innerHeight; renderer.setSize(W, H, false); composer && composer.setSize(W, H); cam.aspect = W / H; cam.updateProjectionMatrix(); };
-  addEventListener('resize', onResize);
-  const tex = c => { const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 4; return t; };
-  let raf, fn = null; const t0 = performance.now(); let prev = t0;
-  const loop = now => { const et = (now - t0) / 1000, dt = Math.min(.05, (now - prev) / 1000); prev = now; fn && fn(et, dt); composer ? composer.render() : renderer.render(scene, cam); raf = requestAnimationFrame(loop); };
-  vs.fxStop = () => {
-    cancelAnimationFrame(raf); removeEventListener('resize', onResize);
-    scene.traverse(o => { if (o.geometry) o.geometry.dispose(); const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []; ms.forEach(m => { m.map && m.map.dispose(); m.dispose(); }); });
-    try { renderer.dispose(); renderer.forceContextLoss(); } catch(e) {}
-    canvas.remove();
-  };
-  return { T, scene, cam, renderer, tex, get W(){ return W; }, get H(){ return H; }, start(f){ fn = f; raf = requestAnimationFrame(loop); } };
-}
 export function faceCanvas(name, color, img, label){
   const c = document.createElement('canvas'); c.width = 256; c.height = label ? 300 : 256; const g = c.getContext('2d');
   g.save(); g.beginPath(); g.arc(128, 128, 112, 0, Math.PI * 2); g.closePath(); g.fillStyle = '#fff'; g.fill(); g.clip();
