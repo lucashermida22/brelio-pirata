@@ -235,8 +235,8 @@ export async function playApproved(ctx) {
       if (!alive() || state !== 'play' || curVid !== v) return;
       const t = v.currentTime, left = (isFinite(v.duration) ? v.duration : meta.dur) - t;
       while (hi < hits.length && t >= hits[hi] - PRESS_LEAD) {
-        if (hi === hits.length - 1) { hi++; return verdict(false, true); }
-        miniHit(hi++);
+        if (hi === hits.length - 1) { const h = hits[hi++]; return verdict(false, true, h); }
+        miniHit(hi, hits[hi]); hi++;
       }
       if (v.ended || (t > 0 && left <= .3)) return verdict();
       raf = requestAnimationFrame(tick);
@@ -247,7 +247,14 @@ export async function playApproved(ctx) {
 
   // golpes previos (p. ej. «no boomerangs, no hammers…»): sellito pequeño en cada golpe del vídeo
   const PRESS_LEAD = .26;   // lo que tarda el sello en bajar hasta el papel
-  function miniHit(k) {
+  // ejecuta fn cuando el vídeo llegue al segundo `at` (o tras `ms` como red de seguridad)
+  function atVideo(v, at, ms, fn) {
+    const t0 = performance.now(); let doneF = false;
+    const go = () => { if (doneF) return; doneF = true; fn(); };
+    const chk = () => { if (doneF || !alive()) return; if (!v || v.paused || v.currentTime >= at || performance.now() - t0 > ms) return go(); requestAnimationFrame(chk); };
+    requestAnimationFrame(chk);
+  }
+  function miniHit(k, hitAt) {
     const { card, kind } = cur, cr = card.getBoundingClientRect(), rr = root.getBoundingClientRect(), c = center(cr);
     const tw = tool.offsetWidth, th = tool.offsetHeight, jx = (rand(2) ? 1 : -1) * rand(16), jy = (rand(2) ? 1 : -1) * rand(18);
     const x = c.x - rr.left - tw / 2 + jx, y = c.y - rr.top - th * .9 + jy;
@@ -258,7 +265,7 @@ export async function playApproved(ctx) {
       { transform: `translate(${x}px, ${y + 6}px) scale(1, .94)`, opacity: 1, offset: .82 },
       { transform: `translate(${x}px, ${y - 60}px)`, opacity: 1 },
     ], { duration: 380, easing: 'cubic-bezier(.45,0,.3,1)', fill: 'forwards' });
-    later(() => {
+    const miniPress = () => {
       if (!alive() || !cur || cur.card !== card) return;
       const ink = document.createElement('div'); ink.className = 'ap-stamp ap-mini';
       ink.style.cssText = `--ink:${KINDS[kind].ink};--rot:${(rand(2) ? 1 : -1) * (6 + rand(22))}deg;translate:${jx * 2.4}px ${jy * 3}px`;
@@ -266,12 +273,13 @@ export async function playApproved(ctx) {
       card.querySelector('.ap-stampbox').appendChild(ink);
       anim(ink, [{ opacity: 0, transform: 'scale(1.2) rotate(var(--rot))' }, { opacity: .5, transform: 'scale(.92) rotate(var(--rot))' }], { duration: 120, fill: 'forwards' });
       thud(false); shake(false); pop(ink, 'stamp', KINDS[kind].ink);
-    }, 380 * .82);
+    };
+    atVideo(curVid, hitAt, 380 * .82 + 250, miniPress);
   }
 
   // ---------- veredicto: el sello de madera baja, aprieta y se va ----------
   // live = sincronizado con el golpe del vídeo: el clip sigue hasta su final antes de pasar al siguiente
-  function verdict(skipped, live) {
+  function verdict(skipped, live, hitAt) {
     if (state !== 'play' && state !== 'enter') return;
     state = 'stamp'; stampAt = performance.now(); cancelAnimationFrame(raf);
     if (pending) { clearTimeout(pending.id); pending = null; }
@@ -293,7 +301,7 @@ export async function playApproved(ctx) {
       { transform: `translate(${x}px, ${y - 20}px) rotate(-2deg)`, opacity: 1, offset: press + .12 },
       { transform: `translate(${x - 200}px, ${y - 360}px) rotate(-20deg)`, opacity: 0 },
     ], { duration: TD, easing: 'cubic-bezier(.45,0,.3,1)' });
-    later(() => {   // momento del golpe: tinta en el papel, sacudida y sonido
+    const press0 = () => {   // momento del golpe: tinta en el papel, sacudida y sonido
       if (!alive()) return;
       card.classList.add('stamped');
       const st = card.querySelector('.ap-status'); if (st) st.textContent = 'Dictaminado';
@@ -305,7 +313,8 @@ export async function playApproved(ctx) {
       anim(card, [{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(3px) scale(.985)' }, { transform: 'none' }], { duration: 220, easing: 'ease-out' });
       thud(ban); shake(ban); pop(stampEl, ban ? 'ban' : 'stamp', KINDS[kind].ink);
       if (ban) impactFrame(card);
-    }, TD * press);
+    };
+    if (live && hitAt != null) atVideo(vv, hitAt, TD * press + 250, press0); else later(press0, TD * press);
     const hold = Math.max(win ? 2400 : ban ? 1350 : 800, rem * 1000 - TD * press + 120);
     wait(TD * press + hold, () => { cap.classList.remove('on'); (win ? finishWin : advance)(); });
   }
