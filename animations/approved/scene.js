@@ -295,6 +295,7 @@ export async function playApproved(ctx) {
       fitChips();
       root.querySelectorAll('.ap-chip').forEach((c, i) => anim(c, [{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-8px) scale(1.08)' }, { transform: 'none' }], { duration: 420, delay: (i % 12) * 40, easing: 'ease-out' }));
     }, 650);
+    later(fitChips, 1250);
     later(() => { ctx.done(); }, 900);
     later(ctx.close, 900 + (ctx.A.hold || 4200));
   }
