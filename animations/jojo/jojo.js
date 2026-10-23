@@ -54,7 +54,7 @@ export function jojoFinale(ctx, t){
 export const jojoFx = () => '<div class="jj-bg"></div><div class="jj-lines"></div><div class="jj-tone"></div><div class="jj-go">' + Array.from({length: 16}, (_, i) => {
     const side = i % 2, x = side ? 72 + Math.random() * 24 : Math.random() * 22, y = 4 + (i / 16) * 86 + Math.random() * 6;
     return `<span style="left:${x}%;top:${y}%;--s:${28 + Math.random() * 60}px;--d:${.2 + i * .12}s;--r:${(Math.random() - .5) * 24}deg;--o:${.75 + Math.random() * .25}">ゴ</span>`;
-  }).join('') + '</div><div class="jj-do">ドドドド</div><div class="jj-tbc"><b>CONTINUARÁ</b><i></i></div>';
+  }).join('') + '</div><div class="jj-slab"></div><div class="jj-do2">ド</div><div class="jj-do">ドドドド</div><div class="jj-tbc"><b>CONTINUARÁ</b><i></i></div>';
 
 export const JOJO = {
   song: 'jojo/vento.mp3', soundAt: 0, beat: 441,
