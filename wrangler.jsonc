@@ -1,17 +1,22 @@
 // Configuración del Worker "brelio". Ver worker/README.md para el alta inicial.
 {
-  "name": "brelio",
+  "name": "brelio-pirata", // = nombre del Worker que creó Workers Builds al conectar el repo
   "account_id": "490087a293a14251a77c756108cb5076", // cuenta de Cloudflare del dueño
   "main": "worker/index.js",
+  // Workers Builds solo ejecuta `wrangler deploy`: esto compila la web antes
+  "build": { "command": "npm run build" },
   "compatibility_date": "2026-10-01",
-  "workers_dev": false, // que no se pueda entrar por *.workers.dev saltándose Access
+  "workers_dev": true, // URL *.workers.dev activa (versión live). Poner false cuando haya Access + dominio propio
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     // Solo estas rutas pasan por el Worker; el resto lo sirven los assets estáticos
     "run_worker_first": ["/api/*", "/media/*"],
     "not_found_handling": "single-page-application"
   },
-  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "brelio-media" }],
+  // R2 aún no está activado en la cuenta: sin esta línea los recursos se sirven desde dist/_media.
+  // Cuando se active: crear el bucket brelio-media y descomentar.
+  // "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "brelio-media" }],
   "d1_databases": [
     {
       "binding": "DB",

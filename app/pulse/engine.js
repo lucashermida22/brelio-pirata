@@ -42,7 +42,8 @@ function makeCanvas() {
   c.className = 'pulse-cv';
   c.setAttribute('aria-hidden', 'true');
   c.width = c.height = 1;
-  c.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (renderer && renderer.kind === 'webgl') broken = true; });
+  // (solo cuenta la pérdida del lienzo actual: la del viejo, que soltamos a propósito, llega más tarde)
+  c.addEventListener('webglcontextlost', () => { if (c === canvas && renderer && renderer.kind === 'webgl') broken = true; });
   document.body.prepend(c);
   return c;
 }

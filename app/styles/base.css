@@ -160,7 +160,6 @@
   .team:hover{border-color:var(--line)}
   @keyframes pop{from{opacity:0;transform:translateY(6px)}}
   .appt{display:grid;grid-template-columns:56px 3px 1fr 16px;align-items:center;gap:12px;padding:12px 14px}
-  .appt[data-pulse]{cursor:pointer}
   .appt[data-pulse]:focus-visible{outline-offset:-2px;border-radius:var(--r-card) var(--r-card) 0 0}
   .appt .time{font:600 15px/1.2 var(--f-head);font-variant-numeric:tabular-nums}
   .appt .time small{display:block;font:400 12px/1.4 var(--f-body);color:var(--muted)}

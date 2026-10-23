@@ -115,8 +115,20 @@ function mediaPlugin() {
 const proxy = process.env.API_PROXY;
 const proxyCfg = proxy ? { '/api': { target: proxy, changeOrigin: true }, '/media': { target: proxy, changeOrigin: true } } : undefined;
 
+// En el build se copia media/ a dist/_media/: el Worker lo sirve si R2 no está activado o le falta un fichero
+function bundleMedia() {
+  return {
+    name: 'lerelio-bundle-media',
+    apply: 'build',
+    closeBundle() {
+      const out = path.join(root, 'dist', '_media');
+      if (fs.existsSync(MEDIA_DIR)) fs.cpSync(MEDIA_DIR, out, { recursive: true });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: proxy ? [] : [mediaPlugin()],
+  plugins: proxy ? [bundleMedia()] : [mediaPlugin(), bundleMedia()],
   resolve: { alias: { '@kit': path.join(root, 'app/versus/kit.js') } },
   server: { proxy: proxyCfg },
   preview: { proxy: proxyCfg },

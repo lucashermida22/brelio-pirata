@@ -26,11 +26,11 @@ const LEAVES = [
 // Los bloques van unos dentro de otros (cristal › tarjeta › sección › botón) y los temblores se
 // suman: por eso los de fuera mueven poco; lo de dentro, con su propio retraso, remata la cascada.
 const KINDS = [
-  { sel: '.glass', a: 1.0, r: 0.035, s: 0.001, f: 3.0, d: 940 },
-  { sel: '.card', a: 1.4, r: 0.09, s: 0.002, f: 3.6, d: 860 },
-  { sel: '.section, .team, .placeholder, .drop', a: 1.5, r: 0.14, s: 0.0026, f: 4.2, d: 780 },
-  { sel: '.hero h1 .w', a: 3.4, r: 0.75, s: 0.011, f: 4.6, d: 760 },
-  { sel: LEAVES, a: 3.0, r: 0.4, s: 0.008, f: 5.2, d: 680 },
+  { sel: '.glass', a: 1.3, r: 0.04, s: 0.001, f: 3.0, d: 940 },
+  { sel: '.card', a: 1.8, r: 0.1, s: 0.002, f: 3.6, d: 860 },
+  { sel: '.section, .team, .placeholder, .drop', a: 2.0, r: 0.16, s: 0.003, f: 4.2, d: 780 },
+  { sel: '.hero h1 .w', a: 4.4, r: 0.9, s: 0.012, f: 4.6, d: 760 },
+  { sel: LEAVES, a: 4.0, r: 0.45, s: 0.009, f: 5.2, d: 680 },
 ];
 // La sacudida del clic: los bloques grandes de la página, juntos (no la página entera; ver arriba)
 const SHAKE = ['header', '.hero', '.stage .glass', '.stories', 'footer'];

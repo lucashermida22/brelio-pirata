@@ -67,8 +67,10 @@ function runWorker(photos) {
     try {
       worker = worker || new Worker(new URL('./palette.worker.js', import.meta.url), { type: 'module' });
     } catch (e) { reject(e); return; }
-    const id = ++jobId;
-    const done = () => { worker.removeEventListener('message', onMsg); worker.removeEventListener('error', onErr); };
+    const id = ++jobId, w = worker;
+    // si se queda colgado (una foto que no acaba de llegar), no puede bloquear las paletas siguientes
+    const timer = setTimeout(() => { done(); reject(new Error('Worker de la paleta: sin respuesta')); }, 20000);
+    const done = () => { clearTimeout(timer); w.removeEventListener('message', onMsg); w.removeEventListener('error', onErr); };
     const onMsg = (e) => {
       if (e.data.id !== id) return;
       done();
@@ -76,9 +78,9 @@ function runWorker(photos) {
       else resolve(e.data);
     };
     const onErr = (e) => { e.preventDefault?.(); done(); reject(new Error('Worker de la paleta: ' + (e.message || 'error'))); };
-    worker.addEventListener('message', onMsg);
-    worker.addEventListener('error', onErr);
-    worker.postMessage({ id, size: SIZE, photos });
+    w.addEventListener('message', onMsg);
+    w.addEventListener('error', onErr);
+    w.postMessage({ id, size: SIZE, photos });
   });
 }
 
@@ -87,6 +89,8 @@ function stopWorker() { if (worker) { worker.terminate(); worker = null; } }
 function analyzeHere(url) {
   return new Promise((resolve) => {
     const img = new Image();
+    const end = (v) => { clearTimeout(timer); img.onload = img.onerror = null; resolve(v); };
+    const timer = setTimeout(() => { end(null); img.src = ''; }, 8000);
     img.decoding = 'async';
     img.onload = () => {
       try {
@@ -95,10 +99,10 @@ function analyzeHere(url) {
         const g = c.getContext('2d', { willReadFrequently: true });
         g.imageSmoothingQuality = 'high';
         g.drawImage(img, 0, 0, SIZE, SIZE);
-        resolve(analyzePixels(g.getImageData(0, 0, SIZE, SIZE).data, SIZE, SIZE));
-      } catch (e) { resolve(null); }
+        end(analyzePixels(g.getImageData(0, 0, SIZE, SIZE).data, SIZE, SIZE));
+      } catch (e) { end(null); }
     };
-    img.onerror = () => resolve(null);
+    img.onerror = () => end(null);
     img.src = url;
   });
 }

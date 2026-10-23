@@ -1,5 +1,5 @@
 // Worker de Lerelio: API (/api/*) y recursos (/media/*). La web estática la sirven los assets.
-import { authenticate, authMode, safeEqual } from './auth.js';
+import { authenticate, authMode, safeEqual, unconfigured } from './auth.js';
 import { HttpError, errorJson, json, readJson } from './http.js';
 import players from './routes/players.js';
 import media, { serveMedia } from './routes/media.js';
@@ -35,7 +35,9 @@ export default {
       }
       if (request.method === 'POST' && pathname === '/api/login') return await login(request, env);
 
-      const auth = await authenticate(request, env);
+      // Sin auth configurada, los recursos siguen siendo legibles (la web funciona en modo local)
+      const readMedia = pathname.startsWith('/media/') && (request.method === 'GET' || request.method === 'HEAD');
+      const auth = readMedia && unconfigured(request, env) ? { user: 'anon', mode: 'none' } : await authenticate(request, env);
 
       // Buscar ruta: si el path existe pero no el método -> 405
       let pathMatched = false;

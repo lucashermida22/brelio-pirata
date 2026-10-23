@@ -175,5 +175,8 @@ describe('autenticación', () => {
 });
 
 it('sin configurar, fuera de localhost no se abre', async () => {
-  expect((await call('/api/me', {}, {})).status).toBe(401);
+  expect((await call('/api/me', {}, {})).status).toBe(503);
+  // …pero los recursos se pueden leer y no se puede subir
+  expect((await call('/media/nada/x.jpg', {}, {})).status).toBe(404);
+  expect((await call('/api/media', { method: 'POST' }, {})).status).toBe(503);
 });

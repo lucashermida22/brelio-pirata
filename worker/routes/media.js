@@ -111,16 +111,43 @@ async function remove({ env, params: [raw] }) {
   return json({ ok: true });
 }
 
+const needR2 = (fn) => async (ctx) => {
+  if (!ctx.env.MEDIA) throw new HttpError(503, 'R2 no está activado todavía: no se pueden subir recursos');
+  return fn(ctx);
+};
+
 export default [
   ['GET', /^\/api\/media$/, list],
-  ['POST', /^\/api\/media$/, upload],
-  ['PUT', /^\/api\/media\/(.+)$/, replace],
-  ['DELETE', /^\/api\/media\/(.+)$/, remove],
+  ['POST', /^\/api\/media$/, needR2(upload)],
+  ['PUT', /^\/api\/media\/(.+)$/, needR2(replace)],
+  ['DELETE', /^\/api\/media\/(.+)$/, needR2(remove)],
 ];
 
 // ---- GET /media/<clave> -----------------------------------------------------
+// Copia empaquetada en los assets, con soporte de Range (para poder saltar dentro de una canción)
+async function serveBundled(env, request, key) {
+  if (!env.ASSETS) return null;
+  const res = await env.ASSETS.fetch(new Request(new URL('/_media/' + key, request.url), { method: 'GET' }));
+  if (!res.ok) return res;
+  const headers = new Headers(res.headers);
+  headers.set('accept-ranges', 'bytes');
+  headers.set('x-content-type-options', 'nosniff');
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('range') || '');
+  if (!range) return new Response(request.method === 'HEAD' ? null : res.body, { status: 200, headers });
+  const buf = await res.arrayBuffer(), size = buf.byteLength;
+  let start = range[1] === '' ? Math.max(0, size - Number(range[2])) : Number(range[1]);
+  let end = range[1] !== '' && range[2] !== '' ? Math.min(Number(range[2]), size - 1) : size - 1;
+  if (start >= size || start > end) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}` } });
+  headers.set('content-range', `bytes ${start}-${end}/${size}`);
+  headers.set('content-length', String(end - start + 1));
+  return new Response(request.method === 'HEAD' ? null : buf.slice(start, end + 1), { status: 206, headers });
+}
+
 export async function serveMedia({ request, env, params: [raw] }) {
   const key = keyFrom(raw);
+  // Sin R2 (o si el fichero no está en R2): servir la copia empaquetada en los assets (/_media/<clave>)
+  const bundled = () => serveBundled(env, request, key);
+  if (!env.MEDIA) { const r = await bundled(); if (r && r.ok) return r; throw new HttpError(404, 'Recurso no encontrado'); }
   let obj;
   try {
     // R2 interpreta Range e If-None-Match/If-Match directamente de las cabeceras
@@ -128,7 +155,7 @@ export async function serveMedia({ request, env, params: [raw] }) {
   } catch {
     return new Response('Rango no satisfacible', { status: 416 });
   }
-  if (!obj) throw new HttpError(404, 'Recurso no encontrado');
+  if (!obj) { const r = await bundled(); if (r && r.ok) return r; throw new HttpError(404, 'Recurso no encontrado'); }
 
   const headers = new Headers();
   obj.writeHttpMetadata(headers);

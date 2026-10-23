@@ -1,6 +1,8 @@
 // Capa de datos: habla con el Worker (/api/*) y, si no hay Worker (npm run dev
 // sin `wrangler dev`), cae a localStorage para jugadores y pachangas.
 import { ls } from './util.js';
+// randomUUID solo existe en contextos seguros (https/localhost): respaldo por si acaso
+const uuid = () => (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
 
 const LS_PLAYERS = 'brelio-players-v2';   // [{id, name, photo_key}]
 const LS_PHOTOS = 'brelio-photos-local';  // {'local/<id>': dataURL}  (fotos subidas sin Worker)
@@ -89,7 +91,7 @@ function legacyPlayers() {
     let key = null;
     if (/^p[1-8]$/.test(id || '')) key = `jugadores/${id}.jpg`;
     else if (id) { const ex = extra.find((x) => x.id === id); if (ex) { key = 'local/' + id; photos[key] = ex.src; } }
-    return { id: crypto.randomUUID(), name, photo_key: key };
+    return { id: uuid(), name, photo_key: key };
   }).map((p) => { ls.setJson(LS_PHOTOS, photos); return p; });
 }
 
@@ -101,7 +103,7 @@ export async function listPlayers() {
   let list = localPlayers();
   if (!list) {
     list = legacyPlayers();
-    if (!list.length) list = DEMO_PLAYERS.map((name) => ({ id: crypto.randomUUID(), name, photo_key: null }));
+    if (!list.length) list = DEMO_PLAYERS.map((name) => ({ id: uuid(), name, photo_key: null }));
     saveLocalPlayers(list);
   }
   return list;
@@ -110,7 +112,7 @@ export async function listPlayers() {
 export async function addPlayer(name, photo_key = null) {
   if (backend.mode === 'remote') return req('/api/players', { method: 'POST', json: { name, photo_key } });
   const list = localPlayers() || [];
-  const p = { id: crypto.randomUUID(), name, photo_key };
+  const p = { id: uuid(), name, photo_key };
   list.push(p); saveLocalPlayers(list);
   return p;
 }
@@ -272,7 +274,7 @@ export async function saveMatch(animation, teams) {
   const body = { animation, teams: slimTeams(teams) };
   if (backend.mode === 'remote') { try { return await req('/api/matches', { method: 'POST', json: body }); } catch (e) { return null; } }
   const list = ls.json(LS_MATCHES, []);
-  const row = { id: crypto.randomUUID(), played_at: Date.now(), winner: null, ...body };
+  const row = { id: uuid(), played_at: Date.now(), winner: null, ...body };
   list.unshift(row); ls.setJson(LS_MATCHES, list.slice(0, 50));
   return row;
 }

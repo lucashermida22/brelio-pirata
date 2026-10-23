@@ -12,14 +12,22 @@ export function authMode(env) {
   return 'dev';
 }
 
-// Devuelve { user, mode } o lanza HttpError(401)
+export const isLocalHost = (h) => h === 'localhost' || h === '127.0.0.1';
+// Sin Access ni GROUP_KEY y fuera de local: la API está cerrada, pero los recursos se pueden leer
+export function unconfigured(request, env) {
+  const explicit = (env.AUTH_MODE || '').trim().toLowerCase() === 'dev';
+  return authMode(env) === 'dev' && !explicit && !isLocalHost(new URL(request.url).hostname);
+}
+
+// Devuelve { user, mode } o lanza HttpError(401/503)
 export async function authenticate(request, env) {
   const mode = authMode(env);
   if (mode === 'dev') {
     // Seguridad: sin configurar, solo se abre en local. En producción hay que poner AUTH_MODE="dev" a propósito.
     const host = new URL(request.url).hostname;
     const explicit = (env.AUTH_MODE || '').trim().toLowerCase() === 'dev';
-    if (!explicit && host !== 'localhost' && host !== '127.0.0.1') throw new HttpError(401, 'Servidor sin autenticación configurada (Access o GROUP_KEY)');
+    // 503 (no 401) para que la web caiga a modo local sin pedir clave
+    if (!explicit && !isLocalHost(host)) throw new HttpError(503, 'API sin configurar: define GROUP_KEY o Cloudflare Access');
     return { user: 'dev', mode };
   }
 
