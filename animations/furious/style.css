@@ -24,3 +24,13 @@
 .ff-alv.on b{transform:none;opacity:1}
 .ff-alv small{font:400 clamp(12px,1.4vw,16px)/1 "Geist",system-ui,sans-serif;letter-spacing:.38em;text-transform:uppercase;color:#bbb;opacity:0;transition:opacity .8s 1.6s}
 .ff-alv.on small{opacity:1}
+
+/* gradación sentimental: viñeta, fuga de luz cálida y grano de película */
+.ff-vig{position:absolute;inset:0;background:radial-gradient(120% 95% at 50% 46%,transparent 55%,rgba(40,14,4,.5) 100%);transition:background 1.5s}
+.ff-leak{position:absolute;inset:-20%;background:radial-gradient(40% 50% at 18% 30%,rgba(255,150,70,.55),transparent 70%),radial-gradient(35% 40% at 85% 75%,rgba(255,90,120,.35),transparent 70%);
+  mix-blend-mode:screen;opacity:.13;animation:ffLeak 14s ease-in-out infinite alternate;transition:opacity 1.6s}
+.ff-grain{position:absolute;inset:-50%;opacity:.5;mix-blend-mode:overlay;animation:ffGrain .5s steps(4) infinite}
+.ff-ov[data-mood="cry"] .ff-leak,.ff-ov[data-mood="together"] .ff-leak,.ff-ov[data-mood="sunset"] .ff-leak{opacity:.38}
+.ff-ov[data-mood="cry"] .ff-vig,.ff-ov[data-mood="together"] .ff-vig{background:radial-gradient(110% 85% at 50% 46%,transparent 45%,rgba(40,10,4,.62) 100%)}
+@keyframes ffLeak{from{transform:translate(-4%,-2%) scale(1)}to{transform:translate(5%,3%) scale(1.12)}}
+@keyframes ffGrain{0%{transform:translate(0,0)}25%{transform:translate(-7%,4%)}50%{transform:translate(5%,-6%)}75%{transform:translate(-3%,7%)}}

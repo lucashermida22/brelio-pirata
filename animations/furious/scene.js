@@ -38,8 +38,11 @@ export async function playFurious(X){
 
   // ---- bandas de cine + rótulos ----
   const ov = document.createElement('div'); ov.className = 'ff-ov';
-  ov.innerHTML = '<div class="ff-bar t"></div><div class="ff-bar b"></div><div class="ff-cap ff-title"></div><div class="ff-cap ff-mid"></div><div class="ff-cap ff-end"></div><div class="ff-fade"></div><div class="ff-for"></div>';
+  ov.innerHTML = '<div class="ff-vig"></div><div class="ff-leak"></div><div class="ff-grain"></div><div class="ff-bar t"></div><div class="ff-bar b"></div><div class="ff-cap ff-title"></div><div class="ff-cap ff-mid"></div><div class="ff-cap ff-end"></div><div class="ff-fade"></div><div class="ff-for"></div>';
   fx.appendChild(ov);
+  { const gc = document.createElement('canvas'); gc.width = gc.height = 160; const g = gc.getContext('2d'), id = g.createImageData(160, 160);
+    for (let i = 0; i < id.data.length; i += 4){ const v = Math.random() * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 34; }
+    g.putImageData(id, 0, 0); ov.querySelector('.ff-grain').style.backgroundImage = `url(${gc.toDataURL()})`; }
   const capT = ov.querySelector('.ff-title'), capM = ov.querySelector('.ff-mid'), capE = ov.querySelector('.ff-end'), fade = ov.querySelector('.ff-fade'), forP = ov.querySelector('.ff-for');
   capT.innerHTML = `<b>${win ? A.winTitle : A.title}</b><small>${win ? esc(teams[0].name) : A.sub}</small>`;
   capM.innerHTML = '';
@@ -81,7 +84,7 @@ export async function playFurious(X){
   scene.fog = new T.Fog(0xe0a070, 260, 2200);
   scene.add(new T.HemisphereLight(0xffd8b0, 0x30241c, .45));
   const sunL = new T.DirectionalLight(0xffb870, 1.9); sunL.castShadow = true;
-  sunL.shadow.mapSize.set(narrow ? 1024 : 2048, narrow ? 1024 : 2048); Object.assign(sunL.shadow.camera, { left: -48, right: 48, top: 48, bottom: -48, near: 10, far: 1400 }); sunL.shadow.bias = -.0008;
+  sunL.shadow.mapSize.set(narrow ? 1024 : 2048, narrow ? 1024 : 2048); Object.assign(sunL.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 1400 }); sunL.shadow.bias = -.0008;
   scene.add(sunL, sunL.target);
 
   // ---- terreno con luz rasante "horneada" (relieve marcado) ----
@@ -118,7 +121,44 @@ export async function playFurious(X){
       d.position.set(x, Hgt(x, z) - s * .12, z); d.scale.set(s, s * (.42 + Math.random() * .25), s); d.rotation.set(0, Math.random() * 6, 0); d.updateMatrix(); bushes.setMatrixAt(i, d.matrix);
       c.setHSL(.15 + Math.random() * .07, .35 + Math.random() * .2, .1 + Math.random() * .09); bushes.setColorAt(i, c);
     } bushes.instanceColor.needsUpdate = true; }
-  scene.add(bushes);
+  bushes.castShadow = true; scene.add(bushes);
+
+  // el terreno recibe las sombras (capa de sombra sobre el color horneado)
+  const shadowM = new T.ShadowMaterial({ color: 0x2a1408, opacity: .3 });
+  const terrShadow = new T.Mesh(tg, shadowM); terrShadow.receiveShadow = true; scene.add(terrShadow);
+
+  // árboles: pinos piñoneros, cipreses y encinas a lo largo de los caminos
+  const TN2 = narrow ? 900 : 2200, TB = TN2 * 2;
+  const trunkG = new T.CylinderGeometry(.16, .3, 1, 6); trunkG.translate(0, .5, 0);
+  const blobG = new T.IcosahedronGeometry(1, 1), coneG = new T.ConeGeometry(1, 1, 8); coneG.translate(0, .5, 0);
+  const leafM = new T.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
+  const trunks = new T.InstancedMesh(trunkG, new T.MeshLambertMaterial({ color: 0x4a3426 }), TN2);
+  const blobs = new T.InstancedMesh(blobG, leafM, TB), cones = new T.InstancedMesh(coneG, leafM, TN2);
+  { const d = new T.Object3D(), cc = new T.Color(); let nt = 0, nb = 0, nc = 0;
+    const put = (im, i, x, y, z, sx, sy, sz, ry0) => { d.position.set(x, y, z); d.scale.set(sx, sy, sz); d.rotation.set(0, ry0, 0); d.updateMatrix(); im.setMatrixAt(i, d.matrix); };
+    for (let tries = 0; tries < TN2 * 3 && nt < TN2 && nb < TB - 2; tries++){
+      const z = 640 - Math.random() * 1900, side = Math.random() < .5 ? -1 : 1;
+      // arboledas: se agrupan en bosquecillos, alguno muy pegado al arcén
+      const grove = nz3(z * .02, 9, side * 3) > -.1, off = 10.5 + Math.pow(Math.random(), grove ? 1.1 : 2.2) * (grove ? 90 : 220);
+      const base = z > zF ? xm(z) : xb(rand(n), z), x = base + side * off + (Math.random() - .5) * 6;
+      if (roadDist(x, z) < 10.5) continue;
+      const y = Hgt(x, z) - .2, s = .6 + Math.random() * .55, r0 = Math.random() * 6.28, kind = Math.random();
+      if (kind < .38){ // pino piñonero: tronco alto, copa en paraguas
+        const h = 5.5 * s; put(trunks, nt++, x, y, z, s, h, s, r0);
+        cc.setHSL(.24 + Math.random() * .06, .32, .14 + Math.random() * .07); put(blobs, nb, x, y + h, z, 2.5 * s, .85 * s, 2.3 * s, r0); blobs.setColorAt(nb++, cc);
+        cc.offsetHSL(0, 0, .03); put(blobs, nb, x + .9 * s, y + h + .35 * s, z - .6 * s, 1.6 * s, .7 * s, 1.5 * s, r0 + 1); blobs.setColorAt(nb++, cc);
+      } else if (kind < .7){ // ciprés: llama verde oscura
+        put(trunks, nt++, x, y, z, s * .8, 1.2 * s, s * .8, r0);
+        cc.setHSL(.29 + Math.random() * .05, .38, .1 + Math.random() * .05); put(cones, nc, x, y + .8 * s, z, 1.05 * s, (7 + Math.random() * 4) * s, 1.05 * s, r0); cones.setColorAt(nc++, cc);
+      } else { // encina: dos copas redondas
+        const h = 2.6 * s; put(trunks, nt++, x, y, z, s * 1.2, h, s * 1.2, r0);
+        cc.setHSL(.17 + Math.random() * .08, .36, .17 + Math.random() * .08);
+        put(blobs, nb, x, y + h + 1.3 * s, z, 2.5 * s, 2 * s, 2.5 * s, r0); blobs.setColorAt(nb++, cc);
+        cc.offsetHSL(0, 0, .04); put(blobs, nb, x + 1.1 * s, y + h + .6 * s, z + .8 * s, 1.7 * s, 1.5 * s, 1.7 * s, r0); blobs.setColorAt(nb++, cc);
+      }
+    }
+    trunks.count = nt; blobs.count = nb; cones.count = nc;
+    [trunks, blobs, cones].forEach(m => { m.castShadow = true; m.receiveShadow = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; scene.add(m); }); }
 
   // cordilleras lejanas en capas (bruma de atardecer)
   [[2050, 300, '#a8735a', .0014], [2600, 380, '#c48e6c', .001], [3150, 460, '#dca57e', .0007]].forEach(([dist, amp, c, f], j) => {
@@ -131,11 +171,27 @@ export async function playFurious(X){
   });
 
   // ---- carreteras: tramo común, cruce limpio y un ramal por equipo ----
-  const mkRoadTex = lines => { const c = document.createElement('canvas'); c.width = 256; c.height = 256; const g = c.getContext('2d');
-    g.fillStyle = '#34302e'; g.fillRect(0, 0, 256, 256); for (let i = 0; i < 1400; i++){ g.fillStyle = `rgba(${140 + rand(80)},${130 + rand(70)},${120 + rand(60)},.07)`; g.fillRect(rand(256), rand(256), 2, 2); }
-    if (lines){ g.fillStyle = '#e6dfcc'; g.fillRect(8, 0, 5, 256); g.fillRect(243, 0, 5, 256); g.fillStyle = '#f2c445'; g.fillRect(124, 0, 4, 256); g.fillRect(130, 0, 4, 256); }
-    const t = tex(c); t.wrapT = T.RepeatWrapping; return t; };
+  const aniso = renderer.capabilities.getMaxAnisotropy ? renderer.capabilities.getMaxAnisotropy() : 1;
+  const mkRoadTex = lines => { const S2 = 512, c = document.createElement('canvas'); c.width = S2; c.height = S2; const g = c.getContext('2d');
+    g.fillStyle = '#35302d'; g.fillRect(0, 0, S2, S2);
+    for (let i = 0; i < 9000; i++){ const v = 90 + rand(110); g.fillStyle = `rgba(${v + 20},${v + 10},${v},${.05 + Math.random() * .07})`; g.fillRect(rand(S2), rand(S2), 1 + rand(3), 1 + rand(3)); }
+    // rodadas oscuras y pulidas por donde pasan las ruedas
+    [[.2, .33], [.67, .8]].forEach(([a, b]) => { const gr = g.createLinearGradient(a * S2, 0, b * S2, 0); gr.addColorStop(0, 'rgba(15,12,12,0)'); gr.addColorStop(.5, 'rgba(15,12,12,.28)'); gr.addColorStop(1, 'rgba(15,12,12,0)'); g.fillStyle = gr; g.fillRect(a * S2, 0, (b - a) * S2, S2); });
+    // parches de asfalto nuevo y grietas
+    for (let i = 0; i < 4; i++){ g.fillStyle = `rgba(20,18,18,${.18 + Math.random() * .15})`; g.fillRect(40 + rand(400), rand(S2), 40 + rand(70), 30 + rand(80)); }
+    g.strokeStyle = 'rgba(12,10,10,.55)'; g.lineWidth = 1.2;
+    for (let i = 0; i < 16; i++){ let x = 30 + rand(450), y = rand(S2); g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 6; k++){ x += (Math.random() - .5) * 22; y += 6 + Math.random() * 16; g.lineTo(x, y); } g.stroke(); }
+    if (lines){
+      const worn = (x, w, col) => { for (let y = 0; y < S2; y += 4){ g.fillStyle = col.replace('A', (.7 + Math.random() * .3).toFixed(2)); g.fillRect(x, y, w, 4); } };
+      worn(14, 9, 'rgba(232,226,208,A)'); worn(S2 - 23, 9, 'rgba(232,226,208,A)');
+      worn(S2 / 2 - 10, 7, 'rgba(242,196,69,A)'); worn(S2 / 2 + 3, 7, 'rgba(242,196,69,A)');
+    }
+    const t = tex(c); t.wrapT = T.RepeatWrapping; t.anisotropy = aniso; return t; };
   const roadT = mkRoadTex(true), plainT = mkRoadTex(false);
+  const gravelT = (() => { const c = document.createElement('canvas'); c.width = 128; c.height = 256; const g = c.getContext('2d');
+    const gr = g.createLinearGradient(0, 0, 128, 0); gr.addColorStop(0, '#7c6248'); gr.addColorStop(.18, '#a88a62'); gr.addColorStop(.5, '#b39468'); gr.addColorStop(.82, '#a88a62'); gr.addColorStop(1, '#7c6248'); g.fillStyle = gr; g.fillRect(0, 0, 128, 256);
+    for (let i = 0; i < 3000; i++){ const v = 70 + rand(120); g.fillStyle = `rgba(${v + 30},${v + 15},${v},.35)`; g.fillRect(rand(128), rand(256), 1 + rand(2), 1 + rand(2)); }
+    const t = tex(c); t.wrapT = T.RepeatWrapping; t.anisotropy = aniso; return t; })();
   function strip(cx, z1, z2, wf, segs, map, lift){
     const pos = [], uv = [], idx = [];
     for (let s = 0; s <= segs; s++){
@@ -150,7 +206,30 @@ export async function playFurious(X){
   }
   const mainW = Math.max(8.5, n * LANE + 2.6);
   let JL = 6; if (n > 1) while (JL < 120 && xb(1, zF - JL) - xb(0, zF - JL) < 7.6) JL += 1; JL += 4;
+  strip(xm, Z0 + 320, win ? -1300 : zF, mainW + 4, 700, gravelT, .04);
   strip(xm, Z0 + 320, win ? -1300 : zF, mainW, 700, roadT, .1);
+  if (!win) for (let i = 0; i < n; i++) strip(z => xb(i, z), zF - JL + 2, -1600, 10.4, 560, gravelT, .08);
+  // balizas blancas con reflectante en los dos lados de cada camino
+  { const paths = [[xm, Z0 + 300, win ? -1300 : zF, mainW / 2 + 1.3]]; if (!win) for (let i = 0; i < n; i++) paths.push([z => xb(i, z), zF - JL - 4, -1600, 4.9]);
+    const posts = [], d = new T.Object3D();
+    paths.forEach(([cx, z1, z2, half]) => { for (let z = z1; z > z2; z -= 22){ const x = cx(z), dx = cx(z - 1) - x, L = Math.hypot(dx, 1), nx = 1 / L, nzv = dx / L; [-1, 1].forEach(sd => posts.push([x + sd * nx * half, ry(z), z + sd * nzv * half])); } });
+    const pm = new T.InstancedMesh(new T.BoxGeometry(.13, 1.05, .13).translate(0, .52, 0), new T.MeshLambertMaterial({ color: 0xe9e4da }), posts.length);
+    const rm = new T.InstancedMesh(new T.BoxGeometry(.15, .16, .15).translate(0, .88, 0), new T.MeshBasicMaterial({ color: 0xff8a2a }), posts.length);
+    posts.forEach(([x, y, z], i) => { d.position.set(x, y, z); d.updateMatrix(); pm.setMatrixAt(i, d.matrix); rm.setMatrixAt(i, d.matrix); });
+    pm.castShadow = true; scene.add(pm, rm); }
+  // postes de teléfono con sus cables combados: el viaje de siempre
+  { const pz = [], d = new T.Object3D(); for (let z = Z0 + 280; z > (win ? -1250 : -1500); z -= 42) pz.push(z);
+    const cxP = z => win || z > zF ? xm(z) : xb(0, z), off = (z) => (z > zF || win ? mainW / 2 : 3.6) + 5.5;
+    const poleM = new T.MeshLambertMaterial({ color: 0x5a4636 });
+    const poles = new T.InstancedMesh(new T.CylinderGeometry(.14, .2, 9.5, 6).translate(0, 4.75, 0), poleM, pz.length), bars = new T.InstancedMesh(new T.BoxGeometry(2.6, .16, .16), poleM, pz.length);
+    const tops = pz.map((z, i) => { const x = cxP(z) - off(z), y = Hgt(x, z) - .1; d.position.set(x, y, z); d.rotation.set(0, Math.atan2(cxP(z - 1) - cxP(z), 1), 0); d.updateMatrix(); poles.setMatrixAt(i, d.matrix);
+      d.position.y = y + 8.9; d.updateMatrix(); bars.setMatrixAt(i, d.matrix); return [x, y + 8.9, z]; });
+    poles.castShadow = bars.castShadow = true; scene.add(poles, bars);
+    const wp = []; for (let i = 0; i + 1 < tops.length; i++){ const [ax, ay, az] = tops[i], [bx, by, bz] = tops[i + 1];
+      [-1.15, 0, 1.15].forEach(o => { let px = ax + o, py = ay + .06, pzz = az; for (let s = 1; s <= 10; s++){ const k = s / 10, sag = Math.sin(k * Math.PI) * 1.1;
+        const qx = ax + (bx - ax) * k + o, qy = ay + (by - ay) * k + .06 - sag, qz = az + (bz - az) * k; wp.push(px, py, pzz, qx, qy, qz); px = qx; py = qy; pzz = qz; } }); }
+    const wg = new T.BufferGeometry(); wg.setAttribute('position', new T.Float32BufferAttribute(wp, 3));
+    scene.add(new T.LineSegments(wg, new T.LineBasicMaterial({ color: 0x1d1512, transparent: true, opacity: .75 }))); }
   if (!win){
     // cruce: un único asfalto liso que se ensancha hasta separar los ramales
     strip(z => { let a = 0; for (let i = 0; i < n; i++) a += xb(i, z); return a / n; }, zF + 1, zF - JL, z => Math.max(mainW, Math.abs(xb(n - 1, z) - xb(0, z)) + 7.2), 40, plainT, .12);
@@ -234,6 +313,19 @@ export async function playFurious(X){
   const sunGlow = new T.Sprite(new T.SpriteMaterial({ map: tex(glowCanvas([[0, 'rgba(255,250,235,1)'], [.1, 'rgba(255,224,170,.85)'], [.35, 'rgba(255,170,90,.25)'], [1, 'rgba(0,0,0,0)']])), ...AB, depthTest: false, fog: false }));
   sunGlow.position.copy(sunDir).multiplyScalar(3000); sunGlow.scale.setScalar(520); scene.add(sunGlow);
   const ghosts = [[.3, 'hex', '255,200,140', 60], [.55, 'ring', '255,170,110', 120], [.8, 'hex', '200,220,255', 40], [1.2, 'ring', '255,210,160', 180]].map(([f, k, rgb, s]) => { const sp = new T.Sprite(new T.SpriteMaterial({ map: tex(flareCanvas(k, rgb)), ...AB, depthTest: false, fog: false, opacity: 0 })); sp.userData = { f, s }; cam.add(sp); return sp; });
+
+  // motas de polen dorado flotando alrededor de la cámara
+  const MN = narrow ? 260 : 520, MB = 46;
+  const moteBase = Float32Array.from({ length: MN * 3 }, () => (Math.random() - .5) * MB), moteV = Float32Array.from({ length: MN * 3 }, (_, i) => i % 3 === 1 ? .15 + Math.random() * .35 : (Math.random() - .5) * .9);
+  const moteG = new T.BufferGeometry(); moteG.setAttribute('position', new T.BufferAttribute(new Float32Array(MN * 3), 3));
+  const motes = new T.Points(moteG, new T.PointsMaterial({ map: tex(glowCanvas([[0, 'rgba(255,248,220,1)'], [.3, 'rgba(255,214,140,.7)'], [1, 'rgba(255,180,90,0)']])), size: .32, ...AB, opacity: .7, fog: false }));
+  motes.frustumCulled = false; scene.add(motes);
+  // bandada de pájaros que vuela hacia el sol
+  const birdT = (() => { const cv = document.createElement('canvas'); cv.width = 128; cv.height = 64; const g = cv.getContext('2d'); g.strokeStyle = '#24140f'; g.lineWidth = 7; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(8, 18); g.quadraticCurveTo(38, 14, 64, 44); g.quadraticCurveTo(90, 14, 120, 18); g.stroke(); return tex(cv); })();
+  const birds = Array.from({ length: 9 }, (_, i) => { const s = new T.Sprite(new T.SpriteMaterial({ map: birdT, transparent: true, opacity: 0, fog: false, depthWrite: false }));
+    s.userData = { ox: (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 7, oy: -Math.ceil(i / 2) * 3.2 + Math.random(), ph: Math.random() * 6 }; scene.add(s); return s; });
+  const birdBase = new T.Vector3(), sunFlat = sunDir.clone().setY(0).normalize(), sideV = new T.Vector3(-sunFlat.z, 0, sunFlat.x);
 
   // ---- movimiento: cada equipo en su carril desde el principio ----
   const SP = 10.5, ease = k => k < .5 ? 4 * k ** 3 : 1 - Math.pow(-2 * k + 2, 3) / 2;
@@ -550,6 +642,17 @@ export async function playFurious(X){
       const P = h.w ? (win && B ? tmp.set(B.x, B.y, B.z) : sp(PC, et)) : L0;
       h.s.position.set(P.x + h.dx, P.y + 2.3 + h.t * 3.2, P.z + Math.sin(h.t * 6 + h.dx) * .3); h.s.scale.setScalar(.35 + .3 * h.t); h.s.material.opacity = Math.sin(h.t * Math.PI) * .9;
     });
+    // motas: caja que viaja con la cámara
+    { const mp = moteG.attributes.position.array, cp = cam.position, h = MB / 2;
+      for (let i = 0; i < MN * 3; i += 3){ for (let a = 0; a < 3; a++){ let v = moteBase[i + a] + moteV[i + a] * rt + Math.sin(rt * .6 + i) * .4 - (a === 0 ? cp.x : a === 1 ? cp.y : cp.z); v = ((v + h) % MB + MB) % MB - h; mp[i + a] = (a === 0 ? cp.x : a === 1 ? cp.y : cp.z) + v; } }
+      moteG.attributes.position.needsUpdate = true;
+      const soft = ['cry', 'together', 'sunset', 'matiRide', 'wide'].includes(kind); motes.material.opacity += ((soft ? .95 : .5) - motes.material.opacity) * Math.min(1, rdt * 2); }
+    // pájaros: lejos, en la dirección del sol, se ven en los planos abiertos
+    { const on = ['wide', 'sunset', 'aerialBack', 'forkTop', 'together'].includes(kind) ? 1 : 0;
+      birdBase.copy(cam.position).addScaledVector(sunFlat, 260 + rt * 4).addScaledVector(sideV, -40 + rt * 3); birdBase.y = cam.position.y + 30 + Math.sin(rt * .3) * 4;
+      birds.forEach(b => { const u2 = b.userData, fl = Math.sin(rt * 7 + u2.ph); b.position.copy(birdBase).addScaledVector(sideV, u2.ox).add(tmp.set(0, u2.oy + fl * .4, 0)).addScaledVector(sunFlat, Math.abs(u2.ox) * -.6);
+        b.scale.set(5, 2.5 * (.55 + .45 * fl), 1); b.material.opacity += (on * .85 - b.material.opacity) * Math.min(1, rdt * 1.5); }); }
+    ov.dataset.mood = kind;
     // sombras siguen al convoy
     sunL.target.position.copy(L); sunL.position.copy(L).addScaledVector(sunDir, 700); sunL.target.updateMatrixWorld();
     // nombres de equipo sobre sus carreteras
