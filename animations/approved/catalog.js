@@ -12,20 +12,20 @@ export const KINDS = {
 };
 export const ORDER = ['ok', 'no', 'ill', 'ban', 'idk', 'free'];
 
-// Cada clip: duración (s), tipo, texto del sello y subtítulo en español
+// Cada clip: duración (s), momentos en que Knuckles golpea con el sello en el vídeo (s), tipo, texto del sello y subtítulo
 export const CLIPS = {
-  'aprobado-1':  { dur: 2.33, kind: 'ok',   stamp: 'APROBADO',            cap: '¡Aprobado!' },
-  'aprobado-2':  { dur: 1.8, kind: 'ok',   stamp: 'APROBADO',            cap: 'Feliz cumpleaños, ¡aprobado!' },
-  'aprobado-3':  { dur: 2.97, kind: 'ok',   stamp: 'APROBADO',            cap: 'Excelente argumento. Aprobado.' },
-  'aprobado-4':  { dur: 2.83, kind: 'ok',   stamp: 'APROBADO',            cap: 'No hay tiempo para leer la lista. Aprobado. Siguiente.' },
-  'aprobado-5':  { dur: 3.5, kind: 'ok',   stamp: 'APROBADO',            cap: '¡Aprobado!' },
+  'aprobado-1':  { dur: 2.33, hits: [0.7], kind: 'ok',   stamp: 'APROBADO',            cap: '¡Aprobado!' },
+  'aprobado-2':  { dur: 1.8, hits: [1.44], kind: 'ok',   stamp: 'APROBADO',            cap: 'Feliz cumpleaños, ¡aprobado!' },
+  'aprobado-3':  { dur: 2.97, hits: [1.85], kind: 'ok',   stamp: 'APROBADO',            cap: 'Excelente argumento. Aprobado.' },
+  'aprobado-4':  { dur: 2.83, hits: [1.82], kind: 'ok',   stamp: 'APROBADO',            cap: 'No hay tiempo para leer la lista. Aprobado. Siguiente.' },
+  'aprobado-5':  { dur: 3.5, hits: [1.95], kind: 'ok',   stamp: 'APROBADO',            cap: '¡Aprobado!' },
   'rechazado-1': { dur: 5.1, kind: 'no',   stamp: 'NO APROBADO',         cap: 'Uh, madura ya, Sonic.' },
-  'rechazado-2': { dur: 3.97, kind: 'no',   stamp: 'NO APROBADO',         cap: '¡Nada de bumeranes, ni martillos, ni inventos, ni ataques giratorios, ni mayonesa!' },
-  'ilegal-1':    { dur: 4.63, kind: 'ill',  stamp: 'AHORA ES ILEGAL',     cap: 'Ahora es ilegal.' },
-  'ilegal-2':    { dur: 1.57, kind: 'ill',  stamp: 'ES ILEGAL',           cap: 'Es ilegal.' },
+  'rechazado-2': { dur: 3.97, hits: [0.22, 0.92, 1.56, 2.28, 3.6], kind: 'no',   stamp: 'NO APROBADO',         cap: '¡Nada de bumeranes, ni martillos, ni inventos, ni ataques giratorios, ni mayonesa!' },
+  'ilegal-1':    { dur: 4.63, hits: [2.85], kind: 'ill',  stamp: 'AHORA ES ILEGAL',     cap: 'Ahora es ilegal.' },
+  'ilegal-2':    { dur: 1.57, hits: [1.2], kind: 'ill',  stamp: 'ES ILEGAL',           cap: 'Es ilegal.' },
   'desterrado-1':{ dur: 5.37, kind: 'ban',  stamp: 'DESTERRADO',          cap: 'Mírate, tú que fuiste tan orgulloso. Vete ahora y no vuelvas jamás.' },
   'dudoso-1':    { dur: 1.73, kind: 'idk',  stamp: 'NI IDEA',             cap: 'No sé.' },
-  'sinconsecuencias-1': { dur: 7.2, kind: 'free', stamp: 'SIN CONSECUENCIAS', cap: '¿Qué es lo peor que podría pasar? ¿Ves? ¡Sin consecuencias!' },
+  'sinconsecuencias-1': { dur: 7.2, hits: [6.92], kind: 'free', stamp: 'SIN CONSECUENCIAS', cap: '¿Qué es lo peor que podría pasar? ¿Ves? ¡Sin consecuencias!' },
 };
 export const clipKey = (id) => `approved/${id}.mp4`;
 const ids = (kind) => Object.keys(CLIPS).filter((k) => CLIPS[k].kind === kind);

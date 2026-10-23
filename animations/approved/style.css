@@ -273,3 +273,13 @@
 .ap-fin{position:absolute;left:50%;top:30%;translate:-50% -50%;font:600 clamp(44px,8vw,110px)/1 "Cinzel",Georgia,serif;letter-spacing:.3em;color:#fff7e6;text-shadow:0 4px 30px rgba(0,0,0,.4);opacity:0;animation:apFin 1.6s ease 6.2s forwards}
 @keyframes apFin{from{opacity:0;letter-spacing:.6em}to{opacity:1;letter-spacing:.3em}}
 @media (prefers-reduced-motion:reduce){.ap-rider{animation-duration:.01s}.ap-wh,.ap-bob,.ap-dust,.ap-road i{animation:none}}
+
+/* ===== WebGL ===== */
+.ap-gl .ap-wall{background:radial-gradient(ellipse 80% 70% at 50% 40%,transparent 40%,rgba(20,6,2,.55) 100%)}
+.ap-gl .ap-dip{display:none}
+.ap-glfx{position:absolute;inset:0;width:100%;height:100%;z-index:25;pointer-events:none}
+.ap-alv3d>*:not(.ap-glfx):not(.ap-gana){opacity:0!important;pointer-events:none!important;transition:opacity .9s ease}
+.ap-alv3d .ap-tool{display:none}
+.ap-gana{position:absolute;inset:0;z-index:30;display:grid;place-items:center;pointer-events:none}
+.ap-gana b{font:600 clamp(40px,7vw,104px)/1 "Cinzel",Georgia,serif;letter-spacing:.22em;color:#fff7ea;text-shadow:0 4px 34px rgba(0,0,0,.35);opacity:0;translate:0 -18vh;animation:apGana 1.8s ease 6.4s forwards}
+@keyframes apGana{from{opacity:0;letter-spacing:.5em}to{opacity:1;letter-spacing:.22em}}

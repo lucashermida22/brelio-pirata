@@ -1,5 +1,6 @@
 import { esc, rand, shuffle, faceInner, LANE_COLORS } from '@kit';
 import { CLIPS, KINDS, catFor, clipKey } from './catalog.js';
+import { setupGL } from './gl.js';
 
 // =====================================================================
 //  APPROVED: el despacho de Knuckles. Cada solicitud sale de la bandeja de
@@ -86,6 +87,10 @@ export async function playApproved(ctx) {
     <div class="ap-tool" id="apTool" aria-hidden="true"><i class="ap-knob"></i><i class="ap-neck"></i><i class="ap-base"></i><i class="ap-rub"></i></div>
     <div class="ap-impact" id="apImpact" aria-hidden="true"><i class="ap-lines"></i><b>DESTERRADO</b></div>`;
   layer.appendChild(root);
+  // capa WebGL (despacho 3D, papelitos, easter egg); se carga en paralelo con los clips
+  let GL = null;
+  const glP = setupGL(ctx, root).then((g) => { GL = g; return g; }).catch(() => null);
+  const pop = (el, kind, ink) => { if (!GL || !el) return; const r = el.getBoundingClientRect(); GL.burst(r.left + r.width / 2, r.top + r.height / 2, kind, ink); GL.bump(); };
   const $r = (s) => root.querySelector(s);
   const glass = $r('#apGlass'), cap = $r('#apCap'), slot = $r('#apSlot'), tv = $r('#apTv'), soundBtn = $r('#apSound'), loadEl = $r('#apLoad');
   const countEl = $r('#apCount'), prog = $r('#apProg'), tool = $r('#apTool'), impact = $r('#apImpact'), pile = $r('#apPile'), leftEl = $r('#apLeft');
@@ -122,6 +127,7 @@ export async function playApproved(ctx) {
   addEventListener('resize', onResize);
   ctx.onClosing(() => stopVideos(true));
   ctx.onClose(() => {
+    if (GL) GL.dispose();
     state = 'closed'; stopVideos(false);
     removeEventListener('keydown', onKey, true); removeEventListener('resize', onResize);
     anims.forEach((a) => { try { a.cancel(); } catch (e) { /* nada */ } });
@@ -222,24 +228,58 @@ export async function playApproved(ctx) {
     });
     state = 'play';
     cancelAnimationFrame(raf);
+    // el sello de la ficha cae a la vez que Knuckles golpea con el suyo en el vídeo
+    const hits = meta.hits || [];
+    let hi = 0;
     const tick = () => {
       if (!alive() || state !== 'play' || curVid !== v) return;
-      const left = (isFinite(v.duration) ? v.duration : meta.dur) - v.currentTime;
-      if (v.ended || (v.currentTime > 0 && left <= .3)) return verdict();
+      const t = v.currentTime, left = (isFinite(v.duration) ? v.duration : meta.dur) - t;
+      while (hi < hits.length && t >= hits[hi] - PRESS_LEAD) {
+        if (hi === hits.length - 1) { hi++; return verdict(false, true); }
+        miniHit(hi++);
+      }
+      if (v.ended || (t > 0 && left <= .3)) return verdict();
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     wait(meta.dur * 1000 + 1800, () => { if (state === 'play') verdict(); });   // por si el vídeo se atasca
   }
 
+  // golpes previos (p. ej. «no boomerangs, no hammers…»): sellito pequeño en cada golpe del vídeo
+  const PRESS_LEAD = .26;   // lo que tarda el sello en bajar hasta el papel
+  function miniHit(k) {
+    const { card, kind } = cur, cr = card.getBoundingClientRect(), rr = root.getBoundingClientRect(), c = center(cr);
+    const tw = tool.offsetWidth, th = tool.offsetHeight, jx = (rand(2) ? 1 : -1) * rand(16), jy = (rand(2) ? 1 : -1) * rand(18);
+    const x = c.x - rr.left - tw / 2 + jx, y = c.y - rr.top - th * .9 + jy;
+    tool.style.setProperty('--ink', KINDS[kind].ink);
+    anim(tool, [
+      { transform: k === 0 ? `translate(${x + 220}px, ${y - 280}px) rotate(20deg)` : `translate(${x}px, ${y - 60}px)`, opacity: k === 0 ? 0 : 1 },
+      { transform: `translate(${x}px, ${y - 30}px)`, opacity: 1, offset: .55 },
+      { transform: `translate(${x}px, ${y + 6}px) scale(1, .94)`, opacity: 1, offset: .82 },
+      { transform: `translate(${x}px, ${y - 60}px)`, opacity: 1 },
+    ], { duration: 380, easing: 'cubic-bezier(.45,0,.3,1)', fill: 'forwards' });
+    later(() => {
+      if (!alive() || !cur || cur.card !== card) return;
+      const ink = document.createElement('div'); ink.className = 'ap-stamp ap-mini';
+      ink.style.cssText = `--ink:${KINDS[kind].ink};--rot:${(rand(2) ? 1 : -1) * (6 + rand(22))}deg;translate:${jx * 2.4}px ${jy * 3}px`;
+      ink.innerHTML = `<span>${esc(CLIPS[cur.clip].stamp)}</span>`;
+      card.querySelector('.ap-stampbox').appendChild(ink);
+      anim(ink, [{ opacity: 0, transform: 'scale(1.2) rotate(var(--rot))' }, { opacity: .5, transform: 'scale(.92) rotate(var(--rot))' }], { duration: 120, fill: 'forwards' });
+      thud(false); shake(false); pop(ink, 'stamp', KINDS[kind].ink);
+    }, 380 * .82);
+  }
+
   // ---------- veredicto: el sello de madera baja, aprieta y se va ----------
-  function verdict(skipped) {
+  // live = sincronizado con el golpe del vídeo: el clip sigue hasta su final antes de pasar al siguiente
+  function verdict(skipped, live) {
     if (state !== 'play' && state !== 'enter') return;
     state = 'stamp'; stampAt = performance.now(); cancelAnimationFrame(raf);
     if (pending) { clearTimeout(pending.id); pending = null; }
-    if (curVid) curVid.pause();   // imagen congelada en el veredicto (y nunca se ven los fotogramas borrosos del final del clip)
+    const vv = curVid, rem = live && vv && isFinite(vv.duration) ? Math.max(0, vv.duration - vv.currentTime - .32) : 0;
+    if (vv && !live) vv.pause();   // imagen congelada en el veredicto (y nunca se ven los fotogramas borrosos del final del clip)
+    if (vv && live) later(() => { if (curVid === vv) vv.pause(); }, rem * 1000);
     const { card, stampEl, kind } = cur, ban = kind === 'ban';
-    cap.classList.remove('on');
+    if (!live) cap.classList.remove('on');
     const cr = card.getBoundingClientRect(), rr = root.getBoundingClientRect(), c = center(cr);
     const tw = tool.offsetWidth, th = tool.offsetHeight;
     const x = c.x - rr.left - tw / 2, y = c.y - rr.top - th * .9;
@@ -263,11 +303,11 @@ export async function playApproved(ctx) {
         { opacity: .92, transform: 'scale(1) rotate(var(--rot))' },
       ], { duration: 220, easing: 'ease-out', fill: 'forwards' });
       anim(card, [{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(3px) scale(.985)' }, { transform: 'none' }], { duration: 220, easing: 'ease-out' });
-      thud(ban); shake(ban);
+      thud(ban); shake(ban); pop(stampEl, ban ? 'ban' : 'stamp', KINDS[kind].ink);
       if (ban) impactFrame(card);
     }, TD * press);
-    const hold = win ? 2400 : ban ? 1350 : 800;
-    wait(TD * press + hold, win ? finishWin : advance);
+    const hold = Math.max(win ? 2400 : ban ? 1350 : 800, rem * 1000 - TD * press + 120);
+    wait(TD * press + hold, () => { cap.classList.remove('on'); (win ? finishWin : advance)(); });
   }
 
   // ---------- impact frame del destierro: negativo, líneas de velocidad, latigazo ----------
@@ -439,7 +479,7 @@ export async function playApproved(ctx) {
           ink.innerHTML = '<span>APROBADO</span>';
           card.querySelector('.ap-stampbox').appendChild(ink);
           anim(ink, [{ opacity: 0, transform: 'scale(1.2) rotate(var(--rot))' }, { opacity: .55 + k * .03, transform: 'scale(.92) rotate(var(--rot))' }], { duration: 120, fill: 'forwards' });
-          thud(false); shake(false);
+          thud(false); shake(false); pop(ink, 'stamp', KINDS.ok.ink);
         }, 50);
       }, startMs + h * 1000);
     });
@@ -458,7 +498,7 @@ export async function playApproved(ctx) {
         state = 'stamp'; card.classList.add('stamped');
         const st = card.querySelector('.ap-status'); if (st) st.textContent = 'Dictaminado';
         anim(cur.stampEl, [{ opacity: 0, transform: 'scale(1.4) rotate(var(--rot))' }, { opacity: .96, transform: 'scale(.96) rotate(var(--rot))', offset: .5 }, { opacity: .94, transform: 'scale(1) rotate(var(--rot))' }], { duration: 260, easing: 'ease-out', fill: 'forwards' });
-        thud(true); shake(true);
+        thud(true); shake(true); pop(cur.stampEl, 'gold'); pop(cur.stampEl, 'stamp', KINDS.ok.ink);
         root.classList.add('ap-gold'); later(() => root.classList.remove('ap-gold'), 900);
         wait(2600, finishWin);
       }, 290);
@@ -487,11 +527,38 @@ export async function playApproved(ctx) {
 
 
   // ---------- easter egg: escribir «alvaro» → Álvaro se va en moto hasta el fin del mundo ----------
+  function alvSound() {
+    // la canción de Fast & Furious mientras se aleja hacia el sol
+    ctx.audio('furious/last_ride.mp3').then((song) => {
+      if (!song || state !== 'alvaro' || !ctx.isOpen()) return;
+      try { song.currentTime = 0; song.volume = 0; const p = song.play(); p && p.catch(() => {}); } catch (e) { return; }
+      const t0 = performance.now(), iv = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / 1400); try { song.volume = k; } catch (e) { /* nada */ } if (k >= 1 || !ctx.isOpen()) clearInterval(iv); }, 40);
+    }).catch(() => {});
+    // motor que se aleja (WebAudio, sin recursos)
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const t = audioCtx.currentTime, o = audioCtx.createOscillator(), o2 = audioCtx.createOscillator(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
+      o.type = 'sawtooth'; o2.type = 'square'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(118, t + 1.2); o.frequency.linearRampToValueAtTime(96, t + 7);
+      o2.frequency.setValueAtTime(35, t); o2.frequency.linearRampToValueAtTime(48, t + 7);
+      f.type = 'lowpass'; f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(160, t + 7);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.09, t + .5); g.gain.exponentialRampToValueAtTime(.0001, t + 7.2);
+      o.connect(f); o2.connect(f); f.connect(g).connect(audioCtx.destination); o.start(t); o2.start(t); o.stop(t + 7.4); o2.stop(t + 7.4);
+    } catch (e) { /* sin audio */ }
+  }
   function alvaroEnd() {
     if (!alive() || state === 'alvaro') return;
     state = 'alvaro'; cancelAnimationFrame(raf);
     if (pending) { clearTimeout(pending.id); pending = null; }
     stopVideos(true); cap.classList.remove('on');
+    if (GL) {   // versión 3D: la carretera al atardecer en WebGL
+      root.classList.add('ap-alv3d');
+      ctx.media('alvaro/alvaro.jpg').then((img) => { if (state === 'alvaro' && ctx.isOpen()) GL.alvaro(img); }).catch(() => GL.alvaro(null));
+      const txt = document.createElement('div'); txt.className = 'ap-gana'; txt.innerHTML = '<b>Gana Álvaro</b>'; root.appendChild(txt);
+      alvSound();
+      later(() => { if (ctx.isOpen()) ctx.done(); }, 8200);
+      later(() => { if (ctx.isOpen()) ctx.close(); }, 8200 + (ctx.A.hold || 4200));
+      return;
+    }
     const face = ctx.url('alvaro/alvaro.jpg');
     const ov = document.createElement('div'); ov.className = 'ap-alv';
     ov.innerHTML = `<div class="ap-sky"></div><div class="ap-sun"></div><div class="ap-hills b"></div><div class="ap-hills f"></div>
@@ -511,24 +578,9 @@ export async function playApproved(ctx) {
         <image href="${face}" x="88.3" y="1.5" width="73.2" height="123.3" clip-path="url(#apAlvFace)" preserveAspectRatio="none"/>
         <circle cx="138" cy="34" r="22" fill="none" stroke="#ff7a1a" stroke-width="3"/>
       </svg></div><i class="ap-dust"></i></div>
-      <div class="ap-fin">FIN</div>`;
+      <div class="ap-fin">Gana Álvaro</div>`;
     root.appendChild(ov);
-    // la canción de Fast & Furious mientras se aleja hacia el sol
-    ctx.audio('furious/last_ride.mp3').then((song) => {
-      if (!song || state !== 'alvaro' || !ctx.isOpen()) return;
-      try { song.currentTime = 0; song.volume = 0; const p = song.play(); p && p.catch(() => {}); } catch (e) { return; }
-      const t0 = performance.now(), iv = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / 1400); try { song.volume = k; } catch (e) { /* nada */ } if (k >= 1 || !ctx.isOpen()) clearInterval(iv); }, 40);
-    }).catch(() => {});
-    // motor que se aleja (WebAudio, sin recursos)
-    try {
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      const t = audioCtx.currentTime, o = audioCtx.createOscillator(), o2 = audioCtx.createOscillator(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
-      o.type = 'sawtooth'; o2.type = 'square'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(118, t + 1.2); o.frequency.linearRampToValueAtTime(96, t + 7);
-      o2.frequency.setValueAtTime(35, t); o2.frequency.linearRampToValueAtTime(48, t + 7);
-      f.type = 'lowpass'; f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(160, t + 7);
-      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.09, t + .5); g.gain.exponentialRampToValueAtTime(.0001, t + 7.2);
-      o.connect(f); o2.connect(f); f.connect(g).connect(audioCtx.destination); o.start(t); o2.start(t); o.stop(t + 7.4); o2.stop(t + 7.4);
-    } catch (e) { /* sin audio */ }
+    alvSound();
     later(() => { if (ctx.isOpen()) ctx.done(); }, 7600);
     later(() => { if (ctx.isOpen()) ctx.close(); }, 7600 + (ctx.A.hold || 4200));
   }
