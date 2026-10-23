@@ -242,3 +242,34 @@
 .ap-stamp.ap-mini span{font-size:min(9cqw,22px)}
 .ap-gold .ap-stage,.ap-gold .ap-desk{animation:apGold .9s ease-out}
 @keyframes apGold{0%{filter:brightness(1.9) saturate(1.4)}100%{filter:none}}
+
+/* ===== easter egg: Álvaro se va en moto hasta el fin del mundo ===== */
+.ap-alv{position:absolute;inset:0;z-index:40;overflow:hidden;animation:apAlvIn .9s ease both}
+@keyframes apAlvIn{from{opacity:0}to{opacity:1}}
+.ap-sky{position:absolute;inset:0;background:linear-gradient(180deg,#1f1238 0%,#4a1f55 22%,#9b3460 40%,#e2603b 54%,#ffa646 61%,#ffd88a 64%)}
+.ap-sun{position:absolute;left:50%;top:64%;width:30vmin;aspect-ratio:1;translate:-50% -50%;border-radius:50%;
+  background:radial-gradient(circle,#fff6d6 0 30%,#ffd27a 46%,#ff9a3c 60%,rgba(255,120,40,0) 71%);filter:blur(.5px);animation:apSun 7s ease-in-out both}
+@keyframes apSun{from{scale:.92;opacity:.85}to{scale:1.12;opacity:1}}
+.ap-hills{position:absolute;left:0;right:0;top:46%;height:20%;}
+.ap-hills.b{background:#5b2350;clip-path:polygon(0 70%,12% 40%,24% 62%,38% 30%,52% 66%,64% 38%,78% 58%,90% 34%,100% 52%,100% 100%,0 100%);opacity:.75}
+.ap-hills.f{top:52%;height:13%;background:#3a1438;clip-path:polygon(0 60%,10% 30%,22% 70%,34% 45%,46% 85%,58% 55%,72% 80%,86% 40%,100% 64%,100% 100%,0 100%)}
+.ap-ground{position:absolute;left:0;right:0;top:64%;bottom:0;background:linear-gradient(180deg,#4a1838,#1c0a18 70%,#0d0610)}
+.ap-road{position:absolute;inset:64% 0 0 0;clip-path:polygon(49.4% 0,50.6% 0,92% 100%,8% 100%);background:linear-gradient(180deg,#5a2a34,#22121a)}
+.ap-road i{position:absolute;left:50%;top:0;bottom:0;width:3%;translate:-50% 0;clip-path:polygon(45% 0,55% 0,100% 100%,0 100%);
+  background:repeating-linear-gradient(180deg,#ffd88a 0 18px,transparent 18px 46px);opacity:.7;animation:apDash .35s linear infinite}
+@keyframes apDash{to{background-position:0 46px}}
+.ap-rider{position:absolute;left:50%;top:64%;width:min(46vw,520px);translate:-50% -100%;transform-origin:50% 100%;animation:apRide 7s cubic-bezier(.35,.05,.3,1) both}
+@keyframes apRide{
+  0%{transform:translate(-34vw,46vh) scale(1.5);opacity:0}
+  6%{opacity:1}
+  100%{transform:translate(0,0) scale(.02);opacity:.9}}
+.ap-bob{animation:apBob .22s ease-in-out infinite alternate}
+@keyframes apBob{to{transform:translateY(-1.2%) rotate(-.6deg)}}
+.ap-rider svg{display:block;width:100%;height:auto;filter:drop-shadow(0 0 18px rgba(255,170,80,.45))}
+.ap-wh{animation:apWheel .25s linear infinite}
+@keyframes apWheel{to{transform:rotate(1turn)}}
+.ap-dust{position:absolute;left:-18%;bottom:2%;width:40%;height:22%;border-radius:50%;background:radial-gradient(ellipse at 80% 60%,rgba(255,210,150,.55),transparent 65%);filter:blur(6px);animation:apDust .5s ease-in-out infinite alternate}
+@keyframes apDust{to{transform:translateX(-12%) scale(1.15);opacity:.6}}
+.ap-fin{position:absolute;left:50%;top:30%;translate:-50% -50%;font:600 clamp(44px,8vw,110px)/1 "Cinzel",Georgia,serif;letter-spacing:.3em;color:#fff7e6;text-shadow:0 4px 30px rgba(0,0,0,.4);opacity:0;animation:apFin 1.6s ease 6.2s forwards}
+@keyframes apFin{from{opacity:0;letter-spacing:.6em}to{opacity:1;letter-spacing:.3em}}
+@media (prefers-reduced-motion:reduce){.ap-rider{animation-duration:.01s}.ap-wh,.ap-bob,.ap-dust,.ap-road i{animation:none}}

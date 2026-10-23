@@ -16,3 +16,11 @@
 #vsLayer[data-anim="furious"] #vsSkip{z-index:5}
 .ff-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3}
 #vsLayer[data-anim="furious"] .jj-world{z-index:6}
+
+/* easter egg de Álvaro: negro y «JODER, ÁLVARO» */
+.ff-alv{position:absolute;inset:0;z-index:4;display:grid;place-items:center;align-content:center;gap:14px;background:#000;opacity:0;pointer-events:none;transition:opacity .9s ease}
+.ff-alv.on{opacity:1}
+.ff-alv b{font:400 clamp(44px,9vw,128px)/1 "Anton","Arial Black",Impact,sans-serif;letter-spacing:.04em;color:#fff;transform:scale(1.25);opacity:0;transition:transform 1.4s cubic-bezier(.2,.8,.2,1) .5s,opacity .4s .5s}
+.ff-alv.on b{transform:none;opacity:1}
+.ff-alv small{font:400 clamp(12px,1.4vw,16px)/1 "Geist",system-ui,sans-serif;letter-spacing:.38em;text-transform:uppercase;color:#bbb;opacity:0;transition:opacity .8s 1.6s}
+.ff-alv.on small{opacity:1}

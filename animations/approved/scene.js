@@ -282,7 +282,7 @@ export async function playApproved(ctx) {
 
   // ---------- pasa al siguiente: el expediente vuela a su bandeja mientras entra el siguiente ----------
   function advance() {
-    if (!alive()) return;
+    if (!alive() || state === 'alvaro') return;
     const done = cur;
     fly(done);
     next();
@@ -353,7 +353,7 @@ export async function playApproved(ctx) {
     ], { duration: dur, easing: EASE, fill: 'both' });
   }
   function next() {
-    if (!alive()) return;
+    if (!alive() || state === 'alvaro') return;
     idx++;
     if (idx >= queue.length) return later(finale, flying ? 700 : 200);
     const p = queue[idx], clip = CLIPS[p.clip], kind = clip.kind;
@@ -369,7 +369,7 @@ export async function playApproved(ctx) {
 
   // ---------- final: el cuadro se recoge y las bandejas ocupan el escritorio ----------
   function finale() {
-    if (!alive()) return;
+    if (!alive() || state === 'alvaro') return;
     state = 'final';
     prog.style.width = '100%';
     countEl.textContent = `Sesión levantada · ${total} expedientes resueltos`;
@@ -465,6 +465,7 @@ export async function playApproved(ctx) {
     }, startMs + endH * 1000);
   }
   function finishWin() {
+    if (state === 'alvaro') return;
     state = 'final';
     prog.style.width = '100%';
     ctx.done();
@@ -483,6 +484,55 @@ export async function playApproved(ctx) {
     skip();
   };
   root.addEventListener('click', (e) => { if (e.target.closest('.ap-frame, .ap-paper, .ap-slot')) onClickSkip(e); });
+
+
+  // ---------- easter egg: escribir «alvaro» → Álvaro se va en moto hasta el fin del mundo ----------
+  function alvaroEnd() {
+    if (!alive() || state === 'alvaro') return;
+    state = 'alvaro'; cancelAnimationFrame(raf);
+    if (pending) { clearTimeout(pending.id); pending = null; }
+    stopVideos(true); cap.classList.remove('on');
+    const face = ctx.url('alvaro/alvaro.jpg');
+    const ov = document.createElement('div'); ov.className = 'ap-alv';
+    ov.innerHTML = `<div class="ap-sky"></div><div class="ap-sun"></div><div class="ap-hills b"></div><div class="ap-hills f"></div>
+      <div class="ap-ground"></div><div class="ap-road"><i></i></div>
+      <div class="ap-rider"><div class="ap-bob"><svg viewBox="0 0 220 150" aria-label="Álvaro en moto">
+        <defs><clipPath id="apAlvFace"><circle cx="138" cy="34" r="22"/></clipPath></defs>
+        <g class="ap-wh" style="transform-origin:50px 116px"><circle cx="50" cy="116" r="26" fill="none" stroke="#120a10" stroke-width="10"/><circle cx="50" cy="116" r="9" fill="#9aa0a8"/><path d="M50 92V140M26 116H74" stroke="#9aa0a8" stroke-width="3"/></g>
+        <g class="ap-wh" style="transform-origin:174px 116px"><circle cx="174" cy="116" r="26" fill="none" stroke="#120a10" stroke-width="10"/><circle cx="174" cy="116" r="9" fill="#9aa0a8"/><path d="M174 92V140M150 116H198" stroke="#9aa0a8" stroke-width="3"/></g>
+        <path d="M50 116 L92 84 L150 84 L174 116" fill="none" stroke="#2a1218" stroke-width="9" stroke-linejoin="round"/>
+        <path d="M84 80 Q118 62 156 76 L150 92 L92 92 Z" fill="#b3121b"/>
+        <path d="M150 78 L170 56 M164 54 L182 50" stroke="#2a1218" stroke-width="6" stroke-linecap="round"/>
+        <path d="M60 100 L40 96" stroke="#6b6f78" stroke-width="6" stroke-linecap="round"/>
+        <path d="M110 80 L124 104 L132 104" stroke="#23262e" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M104 82 Q112 50 132 48 L140 60 Q126 66 120 84 Z" fill="#5c1426"/>
+        <path d="M130 54 L164 56" stroke="#5c1426" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="138" cy="34" r="24" fill="#5c1426"/>
+        <image href="${face}" x="88.3" y="1.5" width="73.2" height="123.3" clip-path="url(#apAlvFace)" preserveAspectRatio="none"/>
+        <circle cx="138" cy="34" r="22" fill="none" stroke="#ff7a1a" stroke-width="3"/>
+      </svg></div><i class="ap-dust"></i></div>
+      <div class="ap-fin">FIN</div>`;
+    root.appendChild(ov);
+    // la canción de Fast & Furious mientras se aleja hacia el sol
+    ctx.audio('furious/last_ride.mp3').then((song) => {
+      if (!song || state !== 'alvaro' || !ctx.isOpen()) return;
+      try { song.currentTime = 0; song.volume = 0; const p = song.play(); p && p.catch(() => {}); } catch (e) { return; }
+      const t0 = performance.now(), iv = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / 1400); try { song.volume = k; } catch (e) { /* nada */ } if (k >= 1 || !ctx.isOpen()) clearInterval(iv); }, 40);
+    }).catch(() => {});
+    // motor que se aleja (WebAudio, sin recursos)
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const t = audioCtx.currentTime, o = audioCtx.createOscillator(), o2 = audioCtx.createOscillator(), f = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
+      o.type = 'sawtooth'; o2.type = 'square'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(118, t + 1.2); o.frequency.linearRampToValueAtTime(96, t + 7);
+      o2.frequency.setValueAtTime(35, t); o2.frequency.linearRampToValueAtTime(48, t + 7);
+      f.type = 'lowpass'; f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(160, t + 7);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.09, t + .5); g.gain.exponentialRampToValueAtTime(.0001, t + 7.2);
+      o.connect(f); o2.connect(f); f.connect(g).connect(audioCtx.destination); o.start(t); o2.start(t); o.stop(t + 7.4); o2.stop(t + 7.4);
+    } catch (e) { /* sin audio */ }
+    later(() => { if (ctx.isOpen()) ctx.done(); }, 7600);
+    later(() => { if (ctx.isOpen()) ctx.close(); }, 7600 + (ctx.A.hold || 4200));
+  }
+  ctx.onType('alvaro', alvaroEnd);
 
   if (win) startWin(); else next();
 }

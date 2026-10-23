@@ -184,7 +184,7 @@ export function initRuntime() {
     if (!vs.open) return;
     if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeVersus(); return; }
     if (e.key.length !== 1) return;
-    vs.keyBuf = (vs.keyBuf + e.key.toLowerCase()).slice(-16);
+    vs.keyBuf = (vs.keyBuf + e.key.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')).slice(-16);   // «álvaro» = «alvaro»
     vs.types.forEach((h) => { if (vs.keyBuf.endsWith(h.seq)) h.fn(); });
   });
 }

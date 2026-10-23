@@ -26,7 +26,7 @@ export async function playFurious(X){
   const imgs = await Promise.all([loadImg($('#vsHero').src), ...teams.flatMap(t => t.members.map(m => loadImg(photoFor(m.name))))]);
   if (!X.isOpen()) return;
   const heroImg = imgs.shift();
-  const [matiImg, crocImg, torImg, paulImg] = await Promise.all([X.media('mati/hero.jpg'), X.media('mati/croc.jpg'), X.media(FF_PHOTO.Toretto), X.media(FF_PHOTO.Paul)]);
+  const [matiImg, crocImg, torImg, paulImg, alvImg] = await Promise.all([X.media('mati/hero.jpg'), X.media('mati/croc.jpg'), X.media(FF_PHOTO.Toretto), X.media(FF_PHOTO.Paul), X.media('alvaro/alvaro.jpg')]);
   ffImgs.Toretto = torImg; ffImgs.Paul = paulImg;
   if (!X.isOpen()) return;
   const ctx = await X.three({ clear: 0xe9b07a, fov: 38, bloom: [.7, .65, .84] });
@@ -275,6 +275,7 @@ export async function playFurious(X){
   bpart(new T.CylinderGeometry(.06, .07, .7, 8), rimM, .2, .6, .45, Math.PI / 2 - .2);
   bpart(new T.BoxGeometry(.52, .62, .3), shirtM, 0, 1.52, .12, -.55);
   [-.21, .21].forEach(x => { bpart(new T.BoxGeometry(.17, .17, .62), pantM, x, 1.06, .2); bpart(new T.BoxGeometry(.13, .13, .62), shirtM, x * 1.6, 1.46, -.3, .5); });
+  const nBase = bike.children.length;   // piezas de la moto sin el piloto (para la moto de Álvaro)
   { const c = document.createElement('canvas'); c.width = 256; c.height = 300; const g = c.getContext('2d');
     g.save(); g.beginPath(); g.arc(128, 128, 112, 0, 7); g.clip(); g.fillStyle = '#222'; g.fillRect(0, 0, 256, 256); if (matiImg) g.drawImage(matiImg, 200, 8, 170, 170, 16, 16, 224, 224); g.restore();
     g.lineWidth = 12; g.strokeStyle = '#b06cff'; g.beginPath(); g.arc(128, 128, 112, 0, 7); g.stroke();
@@ -311,6 +312,65 @@ export async function playFurious(X){
   const tagTP = !win && n > 1 ? new T.Sprite(new T.SpriteMaterial({ map: tex(textCanvas('Toretto ❤ Paul', { size: 110, w: 1024, h: 190, glow: '#ff3b6b', grad: ['#ffffff', '#ffe9c4', '#ff8fb1'] })), transparent: true, opacity: 0, depthTest: false, fog: false })) : null;
   if (tagTP) scene.add(tagTP);
 
+
+  // ---- easter egg 2: Álvaro en moto… y se la pega ----
+  const abike = new T.Group(); abike.visible = false; scene.add(abike);
+  { const alvShirt = new T.MeshStandardMaterial({ color: 0x5c1426, roughness: .75 }), alvPant = new T.MeshStandardMaterial({ color: 0x23262e, roughness: .85 }), alvBody = new T.MeshStandardMaterial({ color: 0xb3121b, metalness: .7, roughness: .3 });
+    bike.children.slice(0, nBase).forEach(o => { const k = o.clone(); if (k.material === shirtM) k.material = alvShirt; else if (k.material === pantM) k.material = alvPant; else if (k.material === bpM) k.material = alvBody; abike.add(k); });
+    const c = document.createElement('canvas'); c.width = 256; c.height = 300; const g = c.getContext('2d');
+    g.save(); g.beginPath(); g.arc(128, 128, 112, 0, 7); g.clip(); g.fillStyle = '#222'; g.fillRect(0, 0, 256, 256); if (alvImg) g.drawImage(alvImg, 118, 48, 202, 202, 16, 16, 224, 224); g.restore();
+    g.lineWidth = 12; g.strokeStyle = '#ff7a1a'; g.beginPath(); g.arc(128, 128, 112, 0, 7); g.stroke();
+    g.font = '800 34px "Plus Jakarta Sans", system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; rrect(g, 58, 252, 140, 44, 14); g.fillStyle = '#3a1206'; g.fill(); g.fillStyle = '#fff'; g.fillText('ÁLVARO', 128, 275);
+    const h = new T.Sprite(new T.SpriteMaterial({ map: tex(c), transparent: true })); h.scale.set(1.15, 1.15 * 300 / 256, 1); h.position.set(0, 2.3, -.05); abike.add(h); }
+  const aWheels = abike.children.filter(o => o.geometry && o.geometry.type === 'TorusGeometry');
+  let alv = null;   // { t0, boomAt, boom: {x,y,z} }
+  // explosión: bolas de fuego, humo, onda y escombros
+  const fireT = tex(glowCanvas([[0, 'rgba(255,255,220,1)'], [.18, 'rgba(255,214,90,.95)'], [.45, 'rgba(255,110,20,.75)'], [.75, 'rgba(160,30,0,.35)'], [1, 'rgba(60,0,0,0)']]));
+  const smokeT = tex(glowCanvas([[0, 'rgba(40,34,30,.85)'], [.5, 'rgba(60,52,46,.45)'], [1, 'rgba(70,60,52,0)']]));
+  const ringT = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); const gr = g.createRadialGradient(128, 128, 70, 128, 128, 126); gr.addColorStop(0, 'rgba(255,220,160,0)'); gr.addColorStop(.7, 'rgba(255,230,190,.9)'); gr.addColorStop(1, 'rgba(255,200,140,0)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256); return tex(c); })();
+  const fx3 = [];   // partículas { s, v:Vector3, t, life, grow, kind }
+  const boomLight = new T.PointLight(0xff8a30, 0, 120, 1.6); scene.add(boomLight);
+  const ring = new T.Mesh(new T.PlaneGeometry(1, 1), new T.MeshBasicMaterial({ map: ringT, ...AB, opacity: 0, side: T.DoubleSide })); ring.rotation.x = -Math.PI / 2; scene.add(ring);
+  function burst(P, big){
+    const nF = big ? 26 : 9, nS = big ? 22 : 7;
+    for (let i = 0; i < nF; i++){ const sp = new T.Sprite(new T.SpriteMaterial({ map: fireT, ...AB, opacity: 1 })); sp.position.copy(P).add(new T.Vector3((Math.random() - .5) * 3, Math.random() * 2, (Math.random() - .5) * 3)); scene.add(sp);
+      fx3.push({ s: sp, v: new T.Vector3((Math.random() - .5) * 10, 4 + Math.random() * 9, (Math.random() - .5) * 10), t: 0, life: .9 + Math.random() * .9, grow: (big ? 9 : 4) + Math.random() * 5, kind: 'fire' }); }
+    for (let i = 0; i < nS; i++){ const sp = new T.Sprite(new T.SpriteMaterial({ map: smokeT, transparent: true, depthWrite: false, opacity: 0 })); sp.position.copy(P).add(new T.Vector3((Math.random() - .5) * 4, 1 + Math.random() * 2, (Math.random() - .5) * 4)); scene.add(sp);
+      fx3.push({ s: sp, v: new T.Vector3((Math.random() - .5) * 3, 2.5 + Math.random() * 3, (Math.random() - .5) * 3), t: -Math.random() * .4, life: 3.5 + Math.random() * 2, grow: (big ? 14 : 7) + Math.random() * 6, kind: 'smoke' }); }
+    for (let i = 0; i < (big ? 30 : 8); i++){ const m = new T.Mesh(new T.BoxGeometry(.2 + Math.random() * .4, .1 + Math.random() * .3, .2 + Math.random() * .5), new T.MeshStandardMaterial({ color: [0x222222, 0xb3121b, 0x9a9ca4, 0x444444][i % 4], metalness: .5, roughness: .5 })); m.position.copy(P).add(new T.Vector3(0, 1, 0)); scene.add(m);
+      fx3.push({ s: m, v: new T.Vector3((Math.random() - .5) * 26, 6 + Math.random() * 16, (Math.random() - .5) * 26), t: 0, life: 3, grow: 0, kind: 'debris', w: new T.Vector3(Math.random() * 9, Math.random() * 9, Math.random() * 9) }); }
+  }
+  // el negro y el «JODER, ÁLVARO»
+  const alvEnd = document.createElement('div'); alvEnd.className = 'ff-alv'; alvEnd.innerHTML = '<b>JODER, ÁLVARO</b><small>no queda ningún equipo</small>'; ov.appendChild(alvEnd);
+  const alvEgg = () => {
+    if (!X.isOpen() || layer.dataset.anim !== 'furious' || !cv.isConnected) return false;
+    if (alv || egg || st > tWhite - 3.2) return true;
+    alv = { t0: st, boomAt: st + 4.4 };
+    tWhite = Infinity; tDone = Infinity;   // este final lo lleva el easter egg
+    capM.dataset.k = 'alv'; capM.innerHTML = '<small>Álvaro</small><i></i><small>¿qué podría salir mal?</small>';
+    S = S || synth(); S && S.riser && S.riser(4.2);
+    return true;
+  };
+  X.onType('alvaro', alvEgg);
+  function alvBoom(P){
+    alv.boom = P.clone(); impact();
+    if (S){ S.boom(true); later(() => S && S.boom(true), 140); later(() => S && S.boom(false), 420); }
+    if (snd){ const v0 = snd.volume, t0 = performance.now(); const iv = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / 400); snd.volume = v0 * (1 - k); if (k >= 1){ clearInterval(iv); snd.pause(); } }, 30); }
+    burst(P, true);
+    boomLight.position.copy(P).add(tmp.set(0, 3, 0)); boomLight.intensity = 9;
+    ring.position.copy(P).add(tmp.set(0, .25, 0)); ring.material.opacity = 1; ring.scale.setScalar(1);
+    // ya no hay equipo: todos los coches salen volando, con fuego
+    cars.forEach((c, i) => {
+      const d = c.g.position.clone().sub(P); d.y = 0; const r = Math.max(2, d.length()); d.normalize();
+      c.blast = { v: d.multiplyScalar(18 + 60 / r + Math.random() * 8).add(new T.Vector3(0, 12 + Math.random() * 12 + 30 / r, 0)), w: new T.Vector3((Math.random() - .5) * 8, (Math.random() - .5) * 8, (Math.random() - .5) * 8), delay: Math.min(.5, r / 60) };
+      later(() => { if (X.isOpen()) burst(c.g.position, false); }, c.blast.delay * 1000 + 80 + i * 40);
+    });
+    abike.visible = false;
+    later(() => { alvEnd.classList.add('on'); }, 3300);
+    later(() => { doneF = true; X.done(); }, 4300);
+    later(() => { closeF = true; X.close(); }, 4300 + (A.hold || 5200));
+  }
+
   // ---- montaje (tiempos del clip original desde 1:52) ----
   let SH = win
     ? [[0, 'aerialBack'], [4, 'cry'], [10, 'top'], [13, 'wide'], [16, 'sunset']]
@@ -319,7 +379,7 @@ export async function playFurious(X){
   const sunAt = () => SH.find(x => x[1] === 'sunset')[0];
   let tWhite = win ? 24 : 36.5, tDone = tWhite + 2.2, doneF = false, closeF = false;
   later(() => { layer.classList.remove('intro'); layer.classList.add('up'); }, 1500);
-  const tmp = new T.Vector3(), fogWhite = new T.Color(1, .82, .62), pW = new T.Vector3(), qW = new T.Vector3();
+  const tmp2 = new T.Color(), tmp = new T.Vector3(), fogWhite = new T.Color(1, .82, .62), pW = new T.Vector3(), qW = new T.Vector3();
 
   // ¡ZA WARUDO! — escribir "mati" durante la animación
   const cv = renderer.domElement, snd = X.song, vento = await X.audio('jojo/vento.mp3');
@@ -342,7 +402,7 @@ export async function playFurious(X){
   }
   const ffEgg = () => {
     if (!X.isOpen() || layer.dataset.anim !== 'furious' || !cv.isConnected) return false;
-    if (egg || st > tWhite - 3.2) return true;
+    if (egg || alv || st > tWhite - 3.2) return true;
     egg = { t0: rtNow }; frozen = true;
     S = synth(); if (S){ S.zap(1600); S.zap(900); }
     if (snd){ snd.preservesPitch = false; snd.mozPreservesPitch = false; snd.webkitPreservesPitch = false; snd.playbackRate = .5; }
@@ -389,9 +449,11 @@ export async function playFurious(X){
     if (!closeF && et >= tDone + (A.hold || 5200) / 1000){ closeF = true; X.close(); return; }
     let [t0, kind] = shotAt(et), u = et - t0;
     if (frozen){ kind = 'freeze'; u = rt - egg.t0; }
+    if (alv){ const a = et - alv.t0; kind = alv.boom ? 'alvBoom' : 'alvRide'; u = alv.boom ? et - alv.boomAt : a; }
     const inside = kind === 'glanceA' ? L0c : kind === 'glanceB' ? L1c : null;
     const oc = inside ? (inside === L0c ? L1c : L0c) : kind === 'cry' ? L0c : null;
     for (const c of cars){
+      if (c.blast){ const b = c.blast; if ((b.t = (b.t || 0) + rdt) > b.delay){ b.v.y -= 28 * rdt; c.g.position.addScaledVector(b.v, rdt); c.g.rotation.x += b.w.x * rdt; c.g.rotation.y += b.w.y * rdt; c.g.rotation.z += b.w.z * rdt; c.paint.color.lerp(tmp2.set(0x1a1410), rdt * 1.5); } c.face.visible = false; if (c.pb) c.pb.visible = false; if (c.halo) c.halo.visible = false; continue; }
       const s = carState(c, et), s2 = carState(c, et + .05);
       c.g.position.set(s.x, s.y, s.z);
       c.g.rotation.y = Math.atan2(-(s2.x - s.x), -(s2.z - s.z));
@@ -423,9 +485,38 @@ export async function playFurious(X){
       aura.material.opacity = .55 * sk * (.75 + .25 * Math.sin(rt * 4.3)); aura.scale.set(7.5 * pop, 9.5 * pop * (1 + .04 * Math.sin(rt * 7)), 1);
       gogo.forEach((g, i) => { g.material.opacity = sk * (.55 + .45 * Math.sin(rt * 3 + i * 2)); g.position.set((i % 2 ? 1 : -1) * 2.1, 2.2 + i * 1.7 + Math.sin(rt * 2 + i) * .25, 1.8); });
     }
+    let A3 = null;
+    if (alv){
+      const a = et - alv.t0, cs = carState(PC, et);
+      if (!alv.boom){
+        const z = cs.z + 46 * (1 - smt(0, 2.6, a)) - 6 * smt(2.6, 4.4, a);
+        const wob = smt(2.4, 4.4, a), cx = (laneX(0, z) + laneX(PC.ti, z)) / 2;
+        const x = (laneX(PC.ti, z) + bSide()) * (1 - wob) + cx * wob + Math.sin(a * 9) * 1.1 * wob;
+        A3 = { x, y: ry(z), z };
+        abike.visible = true; abike.position.set(x, A3.y, z);
+        abike.rotation.set(0, Math.atan2(-Math.cos(a * 9) * 1.1 * wob * .4, 1), Math.sin(a * 9) * .5 * wob);
+        aWheels.forEach(w => { w.rotation.x += rdt * 40; });
+        if (et >= alv.boomAt) alvBoom(new T.Vector3(x, A3.y, z));
+      }
+    }
+    // partículas de la explosión
+    for (let i = fx3.length - 1; i >= 0; i--){
+      const p = fx3[i]; p.t += rdt; if (p.t < 0) continue;
+      const k = p.t / p.life;
+      if (k >= 1){ scene.remove(p.s); fx3.splice(i, 1); continue; }
+      if (p.kind === 'debris'){ p.v.y -= 28 * rdt; p.s.position.addScaledVector(p.v, rdt); p.s.rotation.x += p.w.x * rdt; p.s.rotation.y += p.w.y * rdt; continue; }
+      p.v.multiplyScalar(1 - rdt * (p.kind === 'fire' ? 2.2 : .6)); p.s.position.addScaledVector(p.v, rdt);
+      p.s.scale.setScalar(1 + p.grow * Math.pow(k, p.kind === 'fire' ? .45 : .7));
+      p.s.material.opacity = p.kind === 'fire' ? Math.pow(1 - k, 1.6) : Math.min(1, k * 4) * (1 - k) * .9;
+    }
+    if (boomLight.intensity > 0) boomLight.intensity = Math.max(0, boomLight.intensity - rdt * 5);
+    if (ring.material.opacity > 0){ ring.material.opacity = Math.max(0, ring.material.opacity - rdt * 1.1); ring.scale.setScalar(ring.scale.x + rdt * 90); }
     const L0 = sp(L0c, et), L1 = sp(L1c, et), L = L0.clone().add(L1).multiplyScalar(.5);
     let pos, look;
-    if (kind === 'aerialBack'){ const k = ease(Math.min(1, u / 6.2)); pos = new T.Vector3(L.x + 9 - 4 * k, L.y + 46 - 22 * k, L.z + 46 - 14 * k); look = new T.Vector3(L.x, L.y, L.z - 30 + 8 * k); }
+    if (kind === 'alvRide' && A3){ const w = smt(2.4, 4.2, u); pos = new T.Vector3(A3.x + 5.2 + 6 * w, A3.y + 1.6 + 3.5 * w, A3.z - 8.5 - 4 * w); look = new T.Vector3(A3.x - .4 * (1 - w), A3.y + 1.8 - .8 * w, A3.z + 1.2); }
+    else if (kind === 'alvBoom'){ const P = alv.boom, k = ease(Math.min(1, u / 4)); pos = new T.Vector3(P.x + 16 + 14 * k, P.y + 6 + 10 * k, P.z - 22 - 16 * k); look = new T.Vector3(P.x, P.y + 4 + 2 * k, P.z);
+      const sh = Math.max(0, 1 - u / 1.6) * 1.6; pos.x += (Math.random() - .5) * sh; pos.y += (Math.random() - .5) * sh; }
+    else if (kind === 'aerialBack'){ const k = ease(Math.min(1, u / 6.2)); pos = new T.Vector3(L.x + 9 - 4 * k, L.y + 46 - 22 * k, L.z + 46 - 14 * k); look = new T.Vector3(L.x, L.y, L.z - 30 + 8 * k); }
     else if (kind === 'freeze'){ const P = sp(PC, et), a = .95 + u * .11, R = 8.6 - u * .5; pos = new T.Vector3(P.x + Math.sin(a) * R, P.y + 2.5 + u * .2, P.z - Math.cos(a) * R); look = new T.Vector3(P.x + .8, P.y + 1.3, P.z + 3.5 * Math.min(1, u / 3)); }
     else if (kind === 'matiRide' && B){ pos = new T.Vector3(B.x + 5.4 - u * .35, B.y + 1.5 + u * .12, B.z - 8.8 + u * .9); look = new T.Vector3(B.x - .5, B.y + 2.4, B.z + 1.4); }
     else if (kind === 'together'){ const P = win && B ? new T.Vector3(B.x, B.y, B.z) : sp(PC, et), C = L0.clone().add(P).multiplyScalar(.5); pos = new T.Vector3(C.x + Math.sin(u * .4) * 1.2, C.y + 2.1, C.z - 11.5 + u * .8); look = new T.Vector3(C.x, C.y + 1.25, C.z); }
@@ -479,10 +570,10 @@ export async function playFurious(X){
     ghosts.forEach(g => { const f = g.userData.f; g.position.set(ndc.x * hw * (1 - 2 * f), ndc.y * hh * (1 - 2 * f), -40); g.scale.setScalar(g.userData.s * .2); g.material.opacity = onS * (.12 + .3 * sunK); });
     scene.fog.near = 260 - 160 * sunK; scene.fog.color.setHex(0xe0a070).lerp(fogWhite, sunK * .6);
     // rótulos
-    capT.style.opacity = !egg && et > .8 && et < 4.8 ? Math.min(1, (et - .8) * 1.2, (4.8 - et) * 1.2) : 0;
-    const midKey = inside ? kind : ['cry', 'freeze', 'matiRide', 'together'].includes(kind) ? kind + (saved ? '+' : '') : '';
-    if (capM.dataset.k !== midKey){ capM.dataset.k = midKey; capM.innerHTML = midHTML(midKey.replace('+', '')); }
-    capM.style.opacity = !midKey ? 0 : kind === 'freeze' ? Math.min(1, Math.max(0, (u - 1.5) * 2)) : Math.min(1, u * 1.5);
+    capT.style.opacity = !egg && !alv && et > .8 && et < 4.8 ? Math.min(1, (et - .8) * 1.2, (4.8 - et) * 1.2) : 0;
+    const midKey = alv ? 'alv' : inside ? kind : ['cry', 'freeze', 'matiRide', 'together'].includes(kind) ? kind + (saved ? '+' : '') : '';
+    if (!alv && capM.dataset.k !== midKey){ capM.dataset.k = midKey; capM.innerHTML = midHTML(midKey.replace('+', '')); }
+    capM.style.opacity = alv ? (alv.boom ? 0 : Math.min(1, u * 1.5)) : !midKey ? 0 : kind === 'freeze' ? Math.min(1, Math.max(0, (u - 1.5) * 2)) : Math.min(1, u * 1.5);
     const ce = sunAt() + (win ? 1 : 1.2); capE.style.opacity = et > ce && et < tWhite - .6 ? Math.min(1, (et - ce) * .7, (tWhite - .6 - et) * 1.2) : 0;
     fade.style.opacity = et < .6 ? 1 - et / .6 : et > tWhite - 2.6 ? Math.min(1, (et - tWhite + 2.6) / 2.6) : 0;
     forP.style.opacity = et > tWhite + .4 ? Math.min(1, (et - tWhite - .4) / 1.2) : 0;
