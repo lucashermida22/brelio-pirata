@@ -51,14 +51,14 @@ export async function playApproved(ctx) {
   // ---------- DOM ----------
   const root = document.createElement('div');
   root.className = 'ap-root' + (win ? ' ap-win' : '');
-  root.dataset.n = n;
+  root.dataset.n = n; root.style.setProperty('--n', n);
   const total = win ? 1 : queue.length;
   root.innerHTML = `${INK}
-    <header class="ap-head">
+    <div class="ap-head">
       <div class="ap-brand"><span>🗂️</span> Ministerio de Aprobaciones</div>
       <div class="ap-count"><span id="apCount">${win ? 'Expediente colectivo' : 'Preparando expedientes…'}</span><div class="ap-prog"><i id="apProg"></i></div></div>
-    </header>
-    <main class="ap-main">
+    </div>
+    <div class="ap-main">
       <div class="ap-slot" id="apSlot"></div>
       <div class="ap-tvwrap">
         <div class="ap-tv" id="apTv">
@@ -69,20 +69,20 @@ export async function playApproved(ctx) {
           <button class="ap-sound" id="apSound" type="button" hidden>🔇 toca para activar el sonido</button>
           <div class="ap-load" id="apLoad">Cargando clips…</div>
         </div>
-        <div class="ap-tip">clic · espacio · → para saltar al veredicto</div>
       </div>
-    </main>
-    <section class="ap-teams" id="apTeams">${win ? '' : teams.map((t, i) => {
+      <div class="ap-keys"><span><kbd>Clic</kbd><kbd>Espacio</kbd><kbd>→</kbd></span><em>saltar al veredicto</em></div>
+    </div>
+    <div class="ap-teams" id="apTeams">${win ? '' : teams.map((t, i) => {
       const c = catFor(n, i);
       return `<div class="ap-col" data-ti="${i}" style="--k:${c.color}"><div class="ap-ch"><span class="ap-cname">${esc(t.name)}</span><b class="ap-cc">0</b></div><div class="ap-chips"></div></div>`;
-    }).join('')}</section>`;
+    }).join('')}</div>`;
   layer.appendChild(root);
   const $r = (s) => root.querySelector(s);
   const glass = $r('#apGlass'), cap = $r('#apCap'), slot = $r('#apSlot'), tv = $r('#apTv'), soundBtn = $r('#apSound'), loadEl = $r('#apLoad');
   const countEl = $r('#apCount'), prog = $r('#apProg');
   const cols = [...root.querySelectorAll('.ap-col')];
 
-  let state = 'load', pending = null, raf = 0, audioCtx = null, soundOff = false, curVid = null, curAnim = null, cardWrap = null;
+  let stampAt = 0, state = 'load', pending = null, raf = 0, audioCtx = null, soundOff = false, curVid = null, curAnim = null, cardWrap = null;
   const blobs = [], vids = {}, anims = new Set();
 
   // ---------- limpieza ----------
@@ -97,7 +97,7 @@ export async function playApproved(ctx) {
   }
   const onKey = (e) => {
     if (e.key !== ' ' && e.key !== 'ArrowRight') return;
-    if (!['enter', 'play', 'stamp'].includes(state)) return;   // en la carga y el final Espacio sigue cerrando, como siempre
+    if (!['enter', 'play', 'stamp', 'fly'].includes(state)) return;   // en la carga y el final Espacio sigue cerrando, como siempre
     e.preventDefault(); e.stopImmediatePropagation(); skip();
   };
   addEventListener('keydown', onKey, true);
@@ -137,9 +137,9 @@ export async function playApproved(ctx) {
   function fitChips() {
     if (win || !cols.length || state === 'closed') return;
     const M = Math.max(...teams.map((t) => t.members.length));
-    const body = cols[0].querySelector('.ap-chips'), w = body.clientWidth, h = body.clientHeight; if (!w || !h) return;
+    const body = cols[0].querySelector('.ap-chips'), w = body.clientWidth - 12, h = body.clientHeight - 10; if (!w || !h) return;
     const gap = 6, final = root.classList.contains('ap-final');
-    let s = final ? 92 : 64;
+    let s = final ? 132 : 84;
     for (; s > 24; s -= 2) {
       const nameH = s >= 38 ? 15 : 0, c = Math.max(1, Math.floor((w + gap) / (s + gap))), r = Math.ceil(M / c);
       if (r * (s + nameH + 4) + (r - 1) * gap <= h) break;
@@ -201,7 +201,7 @@ export async function playApproved(ctx) {
   let cur = null;   // { card, clip, p, kindInfo, stamp, markKind }
   function verdict(skipped) {
     if (state !== 'play' && state !== 'enter') return;
-    state = 'stamp'; cancelAnimationFrame(raf);
+    state = 'stamp'; stampAt = performance.now(); cancelAnimationFrame(raf);
     if (pending) { clearTimeout(pending.id); pending = null; }
     if (skipped && curVid) curVid.pause();
     const { card, stampEl } = cur;
@@ -227,7 +227,7 @@ export async function playApproved(ctx) {
     const chip = document.createElement('div');
     chip.className = 'ap-chip'; chip.style.setProperty('--k', KINDS[clip.kind].color);
     chip.title = p.m.name + (p.m.role ? ' · ' + p.m.role : '');
-    chip.innerHTML = `<div class="ap-cf">${faceInner(p.m.name)}<i class="ap-cb">${KINDS[clip.kind].mark}</i></div><div class="ap-cn">${esc(p.m.name)}</div>${p.m.role ? `<u style="background:${LANE_COLORS[p.m.role] || '#71717a'}"></u>` : ''}`;
+    chip.innerHTML = `<div class="ap-cf">${faceInner(p.m.name)}<i class="ap-cb">${KINDS[clip.kind].mark}</i></div><div class="ap-cn">${esc(p.m.name)}</div>`;
     body.appendChild(chip);
     col.classList.add('hot');
     const photo = card.querySelector('.ap-photo'), a = photo.getBoundingClientRect(), c = card.getBoundingClientRect(), t = chip.querySelector('.ap-cf').getBoundingClientRect();
@@ -323,10 +323,10 @@ export async function playApproved(ctx) {
   // ---------- saltar ----------
   function skip() {
     if (state === 'enter' || state === 'play') verdict(true);
-    else if (state === 'stamp') runPending();
+    else if (state === 'stamp' && performance.now() - stampAt > 600) runPending();   // deja ver el sello un momento
   }
   const onClickSkip = (e) => {
-    if (!['enter', 'play', 'stamp'].includes(state)) return;   // en la carga o el final el clic cierra, como siempre
+    if (!['enter', 'play', 'stamp', 'fly'].includes(state)) return;   // en la carga o el final el clic cierra, como siempre
     e.stopPropagation();
     if (soundOff && state === 'play' && !soundBtn.hidden) { unmute(); return; }
     skip();

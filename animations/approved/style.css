@@ -11,7 +11,7 @@
 #vsLayer[data-anim="approved"].win.done .vs-team{animation:none}
 
 .ap-root{--paper:#fbf4e4;--paper2:#f0e4c6;--ink:#2a1a14;--chip:56px;
-  position:absolute;inset:0;z-index:1;display:grid;grid-template-rows:auto minmax(0,1fr) minmax(0,37vh);gap:clamp(8px,1.6vh,16px);
+  position:absolute;inset:0;z-index:1;display:grid;grid-template-rows:auto minmax(0,1fr) minmax(0,31vh);gap:clamp(8px,1.6vh,16px);
   padding:clamp(10px,2vh,20px) clamp(14px,3vw,40px) clamp(56px,9vh,76px);color:#fff;font-family:var(--f-body);
   background:repeating-linear-gradient(135deg,rgba(255,255,255,.028) 0 14px,transparent 14px 28px);
   transition:grid-template-rows .6s cubic-bezier(.6,0,.2,1)}
@@ -27,12 +27,12 @@
 .ap-prog i{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#ffb347,#ffe08a);transition:width .5s cubic-bezier(.3,.7,.2,1)}
 
 /* zona central: carta + pantalla */
-.ap-main{min-height:0;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:clamp(12px,2.4vw,36px);overflow:hidden;transition:opacity .4s}
+.ap-main{min-height:0;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:clamp(12px,2.4vw,36px);transition:opacity .4s}
 .ap-final .ap-main{opacity:0;pointer-events:none}
-.ap-slot{grid-column:1;justify-self:end;width:clamp(200px,19vw,270px);position:relative}
+.ap-slot{grid-column:1;z-index:6;justify-self:end;width:clamp(200px,19vw,270px);position:relative}
 .ap-win .ap-slot{width:clamp(240px,24vw,340px)}
-.ap-tvwrap{grid-column:2;display:flex;flex-direction:column;align-items:center;gap:10px;min-height:0}
-.ap-tv{position:relative;width:min(52vw,calc((100vh - 270px) * 1.7778));min-width:300px;aspect-ratio:16/9;border-radius:clamp(16px,2vw,26px);overflow:hidden;background:#000;cursor:pointer;
+.ap-tvwrap{grid-column:2;position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:10px;min-height:0}
+.ap-tv{position:relative;width:min(54vw,calc((69vh - 170px) * 1.7778));min-width:300px;aspect-ratio:16/9;border-radius:clamp(16px,2vw,26px);overflow:hidden;background:#000;cursor:pointer;
   box-shadow:0 0 0 clamp(6px,.8vw,10px) #1c1218,0 0 0 clamp(8px,1vw,12px) #3b2a33,0 30px 70px -10px rgba(0,0,0,.75),0 0 90px -10px rgba(255,70,90,.35)}
 .ap-glass{position:absolute;inset:0}
 .ap-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none}
@@ -48,7 +48,10 @@
 @keyframes apPulse{50%{scale:1.07}}
 .ap-load{position:absolute;inset:0;display:grid;place-items:center;font:800 15px/1 var(--f-head);letter-spacing:.1em;text-transform:uppercase;color:#ffd9a0;background:#0d070a}
 .ap-load[hidden]{display:none}
-.ap-tip{font:600 12px/1 var(--f-body);color:rgba(255,255,255,.5);letter-spacing:.04em}
+.ap-keys{grid-column:3;justify-self:start;display:flex;flex-direction:column;gap:8px;font:600 12px/1 var(--f-body);color:rgba(255,255,255,.55)}
+.ap-keys span{display:flex;gap:6px}
+.ap-keys kbd{font:800 11px/1 var(--f-head);padding:6px 9px;border-radius:7px;color:#ffe9c2;background:rgba(255,255,255,.1);box-shadow:inset 0 -2px 0 rgba(255,255,255,.18),0 0 0 1px rgba(255,255,255,.16)}
+.ap-keys em{font-style:normal;letter-spacing:.04em}
 
 /* la carta: expediente en papel */
 .ap-card{position:relative;background:linear-gradient(180deg,var(--paper),var(--paper2));color:var(--ink);border-radius:14px;padding:clamp(34px,4.6vh,42px) 16px 16px;
@@ -70,7 +73,7 @@
 
 /* el sello de goma */
 .ap-stampbox{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;overflow:visible}
-.ap-stamp{opacity:0;width:118%;text-align:center;transform:rotate(var(--rot,-12deg));mix-blend-mode:multiply}
+.ap-stamp{opacity:0;width:112%;text-align:center;transform:rotate(var(--rot,-12deg));mix-blend-mode:multiply}
 .ap-stamp span{display:inline-block;max-width:92%;padding:.18em .42em .12em;border:.16em solid var(--sc);border-radius:.22em;color:var(--sc);
   font:900 clamp(24px,2.2vw,34px)/.98 "Arial Black","Plus Jakarta Sans",Impact,system-ui,sans-serif;font-size:min(13cqw,34px);letter-spacing:.03em;text-transform:uppercase;
   background:radial-gradient(ellipse at 20% 30%,rgba(255,255,255,.0),transparent 60%);
@@ -99,7 +102,7 @@
 .ap-ch{display:flex;align-items:center;justify-content:space-between;gap:8px;font:800 clamp(12px,1.3vw,16px)/1.1 var(--f-head)}
 .ap-cname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ap-cc{flex:none;min-width:24px;padding:4px 7px;border-radius:99px;text-align:center;font:800 12px/1 var(--f-head);background:var(--k);color:#fff}
-.ap-chips{flex:1;min-height:0;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;overflow:auto;scrollbar-width:none}
+.ap-chips{flex:1;min-height:0;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;overflow:auto;scrollbar-width:none;padding:8px 8px 0 4px;margin:-4px 0 0}
 .ap-chip{position:relative;width:calc(var(--chip) + 6px);display:flex;flex-direction:column;align-items:center;gap:3px;visibility:hidden}
 .ap-chip.landed{visibility:visible;animation:apChipIn .4s cubic-bezier(.2,.9,.25,1.5)}
 @keyframes apChipIn{0%{transform:scale(.6)}100%{transform:none}}
@@ -108,7 +111,6 @@
 .ap-cf .emo{font-size:calc(var(--chip) * .56);line-height:1;color:#000}
 .ap-cb{position:absolute;right:-6px;top:-6px;min-width:20px;height:20px;padding:0 3px;border-radius:99px;display:grid;place-items:center;background:var(--k);color:#fff;font:900 11px/1 var(--f-head);font-style:normal;box-shadow:0 0 0 2px #2a0a12}
 .ap-cn{max-width:100%;font:700 11px/1.1 var(--f-head);color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ap-chip u{position:absolute;left:50%;bottom:calc(100% - var(--chip) - 1px);width:0;height:0}
 .ap-noname .ap-cn{display:none}
 .ap-noname .ap-cb{min-width:14px;height:14px;font-size:8px;right:-4px;top:-4px}
 .ap-noname .ap-chip{width:var(--chip)}
@@ -124,7 +126,7 @@
   .ap-main{grid-template-columns:1fr;gap:10px;align-content:start}
   .ap-tvwrap{grid-column:1;grid-row:1;width:100%}
   .ap-tv{width:100%;min-width:0;box-shadow:0 0 0 5px #1c1218,0 0 0 7px #3b2a33,0 18px 40px -8px rgba(0,0,0,.75)}
-  .ap-tip{display:none}
+  .ap-keys{display:none}
   .ap-slot{grid-column:1;grid-row:2;justify-self:stretch;width:auto;margin-top:12px}
   .ap-win .ap-slot{width:auto}
   .ap-card{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:12px;padding:30px 12px 10px}
