@@ -41,6 +41,22 @@ Para algo más de `three/examples/jsm`, impórtalo en la escena con `import(...)
 - `q.mob`: menos instancias, AO a media resolución, sombras de 1024, sin MSAA (pasa a SMAA).
 - Comparte geometrías y materiales; usa `InstancedMesh` para vegetación, partículas y repeticiones.
 
+## Ciclo de vida y arranque (motor persistente)
+
+- Hay **un solo `WebGLRenderer`** (y su canvas, el entorno PMREM y la caché de programas de three) durante toda la sesión.
+  `glInit` devuelve escena, cámara y composer nuevos; al cerrar (`vs.fxStop`) se liberan geometrías, texturas y sombras
+  de la escena y se restablece el renderer (tono, sombras, clipping, tamaño…). Los **materiales no se liberan** a propósito:
+  `material.dispose()` destruye su programa y la siguiente animación tendría que recompilarlo. Si el contexto se pierde, o la
+  caché pasa de 400 programas, el renderer se recrea solo.
+- `g.start(fn)` **compila antes de pintar**: `renderer.compileAsync` (KHR_parallel_shader_compile) sobre la escena y los
+  materiales de los pases de postproceso; también con las luces ocultas visibles. Solo entonces arranca el bucle y `et`
+  empieza en 0 en el primer fotograma real. Para algo que añadas luego (huevos, explosiones): `await g.precompile(obj)` antes de
+  `scene.add(obj)`. Construye la escena (luces, sombras, materiales) **antes** de `g.start`.
+- `renderer.debug.checkShaderErrors` solo está activo en desarrollo (en producción evita un `getProgramInfoLog` síncrono por programa).
+- Resolución adaptativa: si la media de ~1 s pasa de 22 ms baja el pixel ratio (mín. 1 en escritorio, .75 en móvil) y luego el AO
+  a media resolución; sube de nuevo si va por debajo de 12 ms. `window.__noAdapt = true` la desactiva.
+- Depuración: `window.__brelioGL.renderer.info` (memoria y programas).
+
 ## Probar
 
 ```sh

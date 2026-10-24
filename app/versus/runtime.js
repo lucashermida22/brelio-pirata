@@ -44,13 +44,22 @@ export function prefetch(id) {
   if (m.warm && !m._warm && webglOK()) m._warm = Promise.resolve(m.warm()).catch(() => { m._warm = null; });
 }
 
-// Cuando el navegador está libre, calienta todas las animaciones (módulos, Three.js, canciones)
-export function warmAll() {
+// ¿Conexión limitada (ahorro de datos o 2G)? Entonces no se calienta nada por adelantado
+export const saveData = () => { const c = navigator.connection; return !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))); };
+
+// Tras el primer pintado y con el navegador libre: trae los chunks de three/postprocessing/n8ao y calienta primero la
+// animación elegida (`first`) y después las demás, de una en una.
+export function warmAll(first) {
+  if (saveData()) return;
   const idle = window.requestIdleCallback || ((f) => setTimeout(f, 800));
+  const ids = order.slice().sort((a, b) => (b === first) - (a === first));
   let i = 0;
-  const ids = order.slice();
   const next = () => { if (i < ids.length) { prefetch(ids[i++]); idle(next, { timeout: 3000 }); } };
-  idle(next, { timeout: 3000 });
+  const start = () => {
+    if (webglOK() && ids.some((k) => registry[k].needsWebGL || registry[k].gl)) kit.loadThree().catch(() => {});
+    idle(next, { timeout: 3000 });
+  };
+  requestAnimationFrame(() => idle(start, { timeout: 4000 }));
 }
 
 // ---- sonido ----------------------------------------------------------------

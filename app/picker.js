@@ -39,7 +39,7 @@ function paint() {
   $('#pickGrid').innerHTML = library.map((key) => {
     const owners = state.players.filter((q) => q.photo_key === key).map((q) => q.name);
     const sel = p.photo_key === key;
-    return `<button class="pick-ph${sel ? ' sel' : ''}" type="button" data-key="${esc(key)}"><img src="${esc(api.mediaUrl(key))}" alt=""><span>${owners.length ? esc(owners.join(', ')) : 'Libre'}</span></button>`;
+    return `<button class="pick-ph${sel ? ' sel' : ''}" type="button" data-key="${esc(key)}"><img decoding="async" loading="lazy" src="${esc(api.mediaUrl(key))}" alt=""><span>${owners.length ? esc(owners.join(', ')) : 'Libre'}</span></button>`;
   }).join('');
 }
 

@@ -6,7 +6,7 @@ import { avatarHTML } from './photos.js';
 import { teamCount, makeTeams, assignLanes, LANE_COLORS } from './teams.js';
 import * as api from './api.js';
 import { openPicker, initPicker, refreshLibrary } from './picker.js';
-import { play, isOpen, pickAnim, prefetch, animIds, animLabel, winMessage } from './versus/runtime.js';
+import { play, isOpen, pickAnim, prefetch, saveData, animIds, animLabel, winMessage } from './versus/runtime.js';
 
 let lastAnim = null;
 
@@ -118,7 +118,7 @@ function pickWinner(e) {
 // precarga la canción de lo siguiente que va a salir
 function prefetchNext() {
   if (state.animPref !== 'random') return prefetch(state.animPref);
-  animIds().forEach((id) => prefetch(id));
+  if (!saveData()) animIds().forEach((id) => prefetch(id));
 }
 
 export function initUI() {
@@ -171,6 +171,8 @@ export function initUI() {
   $('#plus').addEventListener('click', () => step(1));
   $('#num').addEventListener('input', updateHint);
   $('#go').addEventListener('click', generate);
+  // calienta la animación elegida en cuanto el usuario se acerca al botón
+  ['pointerenter', 'focus', 'touchstart'].forEach((ev) => $('#go').addEventListener(ev, () => { if (state.animPref !== 'random') prefetch(state.animPref); }, { passive: true }));
   $('#reshuffle').addEventListener('click', generate);
   $('#result').addEventListener('click', pickWinner);
 

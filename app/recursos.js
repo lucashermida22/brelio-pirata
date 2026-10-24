@@ -34,7 +34,7 @@ function paintChips() {
 
 function preview(r) {
   const u = esc(r.url);
-  if (r.type.startsWith('image/')) return `<span class="rthumb"><img src="${u}" alt="" loading="lazy"></span>`;
+  if (r.type.startsWith('image/')) return `<span class="rthumb"><img src="${u}" alt="" loading="lazy" decoding="async"></span>`;
   if (r.type.startsWith('audio/')) return `<button class="rthumb rplay" type="button" data-play="${esc(r.key)}" aria-label="Escuchar">${ICON.play}</button>`;
   if (r.type.startsWith('video/')) return `<button class="rthumb rvid" type="button" data-vid="${esc(r.key)}" aria-label="Ver"><video src="${u}#t=0.1" preload="metadata" muted playsinline loop></video></button>`;
   return `<span class="rthumb">${ICON.file}</span>`;

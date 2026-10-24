@@ -46,7 +46,7 @@ async function boot() {
   initPulse();   // la onda de color de los botones que no hacen nada
   addEventListener('hashchange', route);
   route();
-  warmAll();
+  warmAll(state.animPref !== 'random' ? state.animPref : null);
   window.__brelio = { state, api, showTeams };   // para depurar desde la consola
   if (mode === 'local') console.info('[brelio] Sin Worker: jugadores y pachangas en localStorage.');
 }

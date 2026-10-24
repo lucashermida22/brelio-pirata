@@ -22,10 +22,10 @@ export function emojiFor(name) {
 
 export const faceInner = (name) => {
   const src = photoFor(name);
-  return src ? `<img src="${esc(src)}" alt="">` : `<span class="emo">${emojiFor(name)}</span>`;
+  return src ? `<img decoding="async" src="${esc(src)}" alt="">` : `<span class="emo">${emojiFor(name)}</span>`;
 };
 
 export const avatarHTML = (name) => {
   const src = photoFor(name);
-  return src ? `<span class="avatar ph"><img src="${esc(src)}" alt=""></span>` : `<span class="avatar emo">${emojiFor(name)}</span>`;
+  return src ? `<span class="avatar ph"><img decoding="async" src="${esc(src)}" alt=""></span>` : `<span class="avatar emo">${emojiFor(name)}</span>`;
 };
