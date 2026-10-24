@@ -50,7 +50,7 @@ Para algo más de `three/examples/jsm`, impórtalo en la escena con `import(...)
   caché pasa de 400 programas, el renderer se recrea solo.
 - `g.start(fn)` **compila antes de pintar**: `renderer.compileAsync` (KHR_parallel_shader_compile) sobre la escena y los
   materiales de los pases de postproceso; también con las luces ocultas visibles. Solo entonces arranca el bucle y `et`
-  empieza en 0 en el primer fotograma real. Para algo que añadas luego (huevos, explosiones): `await g.precompile(obj)` antes de
+  cuenta desde la llamada a `g.start` (sincronizado con la música; el primer fotograma llega con et ≈ tiempo de compilación). Para algo que añadas luego (huevos, explosiones): `await g.precompile(obj)` antes de
   `scene.add(obj)`. Construye la escena (luces, sombras, materiales) **antes** de `g.start`.
 - `renderer.debug.checkShaderErrors` solo está activo en desarrollo (en producción evita un `getProgramInfoLog` síncrono por programa).
 - Resolución adaptativa: si la media de ~1 s pasa de 22 ms baja el pixel ratio (mín. 1 en escritorio, .75 en móvil) y luego el AO

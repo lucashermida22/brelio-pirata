@@ -224,7 +224,7 @@ export function glInit(opts = {}) {
   };
 
   // ---- bucle ----
-  let raf = 0, fn = null, t0 = null, prev = 0, dead = false, booting = false;
+  let raf = 0, fn = null, t0 = null, tCall = 0, prev = 0, dead = false, booting = false;
   // resolución adaptativa: media de ~1 s; > 22 ms baja, < 12 ms (4 ventanas seguidas) sube; tras cada cambio se salta alguna ventana
   const minPr = Math.min(q.dpr, q.mob ? .75 : 1);
   let aWin = 0, aN = 0, aSum = 0, aSkip = 2, aFast = 0, aLow = false;
@@ -248,11 +248,11 @@ export function glInit(opts = {}) {
     if (dead) return;
     let dt;
     if (t0 === null) { t0 = now; prev = now; dt = 1 / 60; } else { dt = Math.min(.05, (now - prev) / 1000); adapt(now - prev, now); prev = now; }
-    fn && fn((now - t0) / 1000, dt);
+    fn && fn(Math.max(0, now - tCall) / 1000, dt);
     composer ? composer.render(dt) : renderer.render(scene, cam);
     raf = requestAnimationFrame(loop);
   };
-  // el reloj (`et`) arranca en 0 en el primer fotograma real, ya con los shaders compilados
+  // el reloj (`et`) cuenta desde la llamada a start() (la música no espera a la compilación): el 1.er fotograma llega con et ≈ tiempo de compilación
   const boot = async () => {
     try { await compileAll(scene, true); } catch (e) { console.warn('compileAsync:', e); }
     if (dead) return;
@@ -271,7 +271,7 @@ export function glInit(opts = {}) {
   vs.fxStop = release;
   const api = {
     T, scene, cam, renderer, composer, post, tex, sun, q, canvas, get W() { return W; }, get H() { return H; }, get pixelRatio() { return pr; },
-    start(f) { fn = f; if (!dead && !booting) { booting = true; boot(); } },
+    start(f) { fn = f; if (!dead && !booting) { booting = true; tCall = performance.now(); boot(); } },
     precompile(obj) { return dead ? Promise.resolve() : compileAll(obj || scene, false).catch(() => {}); },
     release,
   };
