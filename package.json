@@ -10,7 +10,9 @@
     "upload-media": "node scripts/upload-media.mjs"
   },
   "dependencies": {
-    "three": "0.128.0"
+    "n8ao": "2.0.1",
+    "postprocessing": "6.39.5",
+    "three": "0.185.1"
   },
   "devDependencies": {
     "vite": "^5.4.0",
