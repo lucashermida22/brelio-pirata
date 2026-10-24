@@ -153,10 +153,10 @@ function mount(ctx, g, lag){
         float cy = max(.12, sqrt(1. - on.y * on.y));
         vec2 off = vec2(dot(Ls, E) / (6.2832 * cy), dot(Ls, Nn) / 3.1416) * -.05;
         float cs = texture2D(cld, vU + off).a, sh = 1. - cs * .55;
-        vec3 sunC = mix(vec3(1., .5, .2), vec3(1., .95, .88), smoothstep(.0, .14, dg));
+        vec3 sunC = mix(vec3(1., .7, .45), vec3(1., .95, .88), smoothstep(.0, .12, dg));
         vec3 alb = texture2D(day, vU).rgb;
         float diff = max(d, 0.) * smoothstep(-.04, .1, dg);
-        vec3 col = alb * sunC * diff * 3.1 * sh + alb * s2l(vec3(.5, .6, 1.)) * .012;
+        vec3 col = alb * sunC * diff * 3.1 * sh + alb * s2l(vec3(.42, .55, 1.)) * .07 + s2l(vec3(.1, .2, .5)) * sea * .012;
         // océano: reflejo del cielo en ángulos rasantes y brillo solar (HDR para el bloom)
         float nv = max(dot(N, V), 0.), Fr = .02 + .98 * pow(1. - nv, 5.);
         vec3 Hh = normalize(L + V); float nh = max(dot(N, Hh), 0.);
@@ -194,13 +194,13 @@ function mount(ctx, g, lag){
     fragmentShader: GLSL_SRGB + `uniform vec3 sun; varying vec3 vN; varying vec3 vW; void main(){ vec3 N = normalize(vN), V = normalize(cameraPosition - vW);
       float f = pow(max(0., 1. - abs(dot(N, V)) * 1.04), 6.5); float d = dot(-N, sun); float lit = smoothstep(-.45, .5, d);
       float fw = pow(max(dot(sun, -V), 0.), 5.);                                  // dispersión hacia delante: el limbo se enciende con el sol detrás
-      vec3 c = mix(s2l(vec3(1., .46, .16)), s2l(vec3(.3, .6, 1.)), smoothstep(.05, .6, d));
-      gl_FragColor = vec4(c * f * (.05 + lit * 2.0 + fw * 1.5), 1.); }` }));
+      vec3 c = mix(s2l(vec3(.9, .5, .25)), s2l(vec3(.3, .6, 1.)), smoothstep(-.12, .2, d));
+      gl_FragColor = vec4(c * f * (.05 + lit * 2.0 + fw * 1.1), 1.); }` }));
   const atmoIn = new T.Mesh(new T.SphereGeometry(R * 1.04, 96, 96), new T.ShaderMaterial({ uniforms: { sun: { value: sunDir } }, side: T.FrontSide, ...AB,
     vertexShader: 'varying vec3 vN; varying vec3 vW; void main(){ vN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position,1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
     fragmentShader: GLSL_SRGB + `uniform vec3 sun; varying vec3 vN; varying vec3 vW; void main(){ vec3 N = normalize(vN), V = normalize(cameraPosition - vW);
       float nv = max(dot(N, V), 0.), f = pow(1. - nv, 2.6); float d = dot(N, sun);
-      vec3 blue = s2l(vec3(.28, .55, 1.)) * smoothstep(-.15, .55, d) * 1.05, red = s2l(vec3(1., .55, .25)) * pow(1. - abs(d), 7.) * smoothstep(-.3, .1, d) * .3;
+      vec3 blue = s2l(vec3(.28, .55, 1.)) * smoothstep(-.15, .55, d) * 1.05, red = s2l(vec3(1., .55, .25)) * pow(1. - abs(d), 16.) * smoothstep(-.3, .1, d) * .25;
       gl_FragColor = vec4((blue + red) * f * .8, 1.); }` }));
   earth.add(globe, clouds, atmoIn, atmoOut);
 
@@ -212,7 +212,7 @@ function mount(ctx, g, lag){
   const burst = sunSp(flareCanvas('burst'), 1100, .9, 1.6);
   const streakC = document.createElement('canvas'); streakC.width = 1024; streakC.height = 64;
   { const x = streakC.getContext('2d'), gr = x.createLinearGradient(0, 0, 1024, 0); gr.addColorStop(0, 'rgba(120,170,255,0)'); gr.addColorStop(.5, 'rgba(235,245,255,1)'); gr.addColorStop(1, 'rgba(120,170,255,0)'); x.fillStyle = gr; x.fillRect(0, 29, 1024, 6); }
-  const streak = sunSp(streakC, 1, 1, 1.3); streak.userData.streak = true;
+  const streak = sunSp(streakC, 1, .6, 1.1); streak.userData.streak = true;
   const ghosts = [[.25, 'hex', '120,200,255', 1.1], [.45, 'ring', '255,180,120', 2.2], [.62, 'hex', '170,255,190', .7], [.9, 'hex', '255,150,220', 1.5], [1.25, 'ring', '140,170,255', 3.1], [1.5, 'hex', '255,220,140', .9]]
     .map(([f, k, rgb, s]) => { const sp = new T.Sprite(new T.SpriteMaterial({ map: mk(flareCanvas(k, rgb)), color: hdr(0xffffff, 1.4), ...AB, depthTest: false, opacity: 0 })); sp.userData = { f, s }; cam.add(sp); return sp; });
 
@@ -269,7 +269,7 @@ function mount(ctx, g, lag){
     const pop = sunSeen < 0 ? 0 : 1 + 2.2 * Math.exp(-(et - sunSeen) * 2.6);
     sunSprites.forEach(s => {
       s.material.opacity = s.userData.op * vis * Math.min(1, pop);
-      if (s.userData.streak) s.scale.set(5200 * vis * pop, 56 * vis + 1, 1); else s.scale.setScalar(s.userData.sc * (.5 + .5 * vis) * Math.max(1, pop * .8));
+      if (s.userData.streak) s.scale.set(1500 * vis * Math.min(pop, 1.6), 30 * vis + 1, 1); else s.scale.setScalar(s.userData.sc * (.5 + .5 * vis) * Math.max(1, pop * .8));
     });
     burst.material.rotation = et * .05;
     // fantasmas de la lente en la línea sol → centro de pantalla
