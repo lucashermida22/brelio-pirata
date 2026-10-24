@@ -131,15 +131,15 @@ export async function playFurious(X){
       const base = z > zF ? xm(z) : xb(rand(n), z), x = base + side * off;
       if (roadDist(x, z) < 8.5) continue;
       const s = .45 + Math.pow(Math.random(), 2) * 1.5;
-      d.position.set(x, Hgt(x, z) - s * .12, z); d.scale.set(s, s * (.42 + Math.random() * .25), s); d.rotation.set(0, Math.random() * 6, 0); d.updateMatrix(); bushes.setMatrixAt(nb, d.matrix);
-      c.setHSL(.15 + Math.random() * .07, .35 + Math.random() * .2, .1 + Math.random() * .09, T.SRGBColorSpace); bushes.setColorAt(nb++, c);
+      d.position.set(x, Hgt(x, z) - s * .2 - .15, z); d.scale.set(s, s * (.42 + Math.random() * .25), s); d.rotation.set(0, Math.random() * 6, 0); d.updateMatrix(); bushes.setMatrixAt(nb, d.matrix);
+      c.setHSL(.17 + Math.random() * .1, .38 + Math.random() * .2, .27 + Math.random() * .14, T.SRGBColorSpace); bushes.setColorAt(nb++, c);
     } bushes.count = nb; bushes.instanceColor.needsUpdate = true; }
   bushes.castShadow = true; bushes.receiveShadow = true; scene.add(bushes);
 
   // árboles: pinos piñoneros, cipreses y encinas a lo largo de los caminos
   const TN2 = mob ? 900 : 2200, TB = TN2 * 2, treeRec = []; let curBase = null;
   const leafM = windify(new T.MeshStandardMaterial({ color: 0xffffff, roughness: .92, metalness: 0 }), uTime, .14), coneM = windify(new T.MeshStandardMaterial({ color: 0xffffff, roughness: .92, metalness: 0 }), uTime, .1, 0);
-  const trunks = new T.InstancedMesh(G.trunk, new T.MeshStandardMaterial({ color: 0x4a3426, roughness: .95 }), TN2);
+  const trunks = new T.InstancedMesh(G.trunk, new T.MeshStandardMaterial({ color: 0x7a5a40, roughness: .95 }), TN2);
   const blobs = new T.InstancedMesh(G.blob, leafM, TB), cones = new T.InstancedMesh(G.cone, coneM, TN2);
   { const d = new T.Object3D(), cc = new T.Color(); let nt = 0, nb = 0, nc = 0;
     const put = (im, i, x, y, z, sx, sy, sz, ry0) => { d.position.set(x, y, z); d.scale.set(sx, sy, sz); d.rotation.set(0, ry0, 0); d.updateMatrix(); im.setMatrixAt(i, d.matrix); treeRec.push({ im, i, x, y, z, sx, sy, sz, r0: ry0, b: curBase }); };
@@ -149,17 +149,17 @@ export async function playFurious(X){
       const grove = nz3(z * .02, 9, side * 3) > -.1, off = 10.5 + Math.pow(Math.random(), grove ? 1.1 : 2.2) * (grove ? 90 : 220);
       const base = z > zF ? xm(z) : xb(rand(n), z), x = base + side * off + (Math.random() - .5) * 6;
       if (roadDist(x, z) < 10.5) continue;
-      const y = Hgt(x, z) - .2; curBase = [x, y, z]; const s = .6 + Math.random() * .55, r0 = Math.random() * 6.28, kind = Math.random();
+      const y = Hgt(x, z) - .5; curBase = [x, y, z]; const s = .6 + Math.random() * .55, r0 = Math.random() * 6.28, kind = Math.random();
       if (kind < .38){ // pino piñonero: tronco alto, copa en paraguas
         const h = 5.5 * s; put(trunks, nt++, x, y, z, s, h, s, r0);
-        cc.setHSL(.24 + Math.random() * .06, .32, .14 + Math.random() * .07, T.SRGBColorSpace); put(blobs, nb, x, y + h, z, 2.5 * s, .85 * s, 2.3 * s, r0); blobs.setColorAt(nb++, cc);
-        cc.offsetHSL(0, 0, .03); put(blobs, nb, x + .9 * s, y + h + .35 * s, z - .6 * s, 1.6 * s, .7 * s, 1.5 * s, r0 + 1); blobs.setColorAt(nb++, cc);
+        cc.setHSL(.24 + Math.random() * .06, .42, .3 + Math.random() * .1, T.SRGBColorSpace); put(blobs, nb, x, y + h, z, 2.5 * s, .85 * s, 2.3 * s, r0); blobs.setColorAt(nb++, cc);
+        cc.offsetHSL(0, 0, .04); put(blobs, nb, x + .9 * s, y + h + .35 * s, z - .6 * s, 1.6 * s, .7 * s, 1.5 * s, r0 + 1); blobs.setColorAt(nb++, cc);
       } else if (kind < .7){ // ciprés: llama verde oscura
         put(trunks, nt++, x, y, z, s * .8, 1.2 * s, s * .8, r0);
-        cc.setHSL(.29 + Math.random() * .05, .38, .1 + Math.random() * .05, T.SRGBColorSpace); put(cones, nc, x, y + .8 * s, z, 1.05 * s, (7 + Math.random() * 4) * s, 1.05 * s, r0); cones.setColorAt(nc++, cc);
+        cc.setHSL(.29 + Math.random() * .05, .45, .22 + Math.random() * .08, T.SRGBColorSpace); put(cones, nc, x, y + .8 * s, z, 1.05 * s, (7 + Math.random() * 4) * s, 1.05 * s, r0); cones.setColorAt(nc++, cc);
       } else { // encina: dos copas redondas
         const h = 2.6 * s; put(trunks, nt++, x, y, z, s * 1.2, h, s * 1.2, r0);
-        cc.setHSL(.17 + Math.random() * .08, .36, .17 + Math.random() * .08, T.SRGBColorSpace);
+        cc.setHSL(.2 + Math.random() * .08, .42, .3 + Math.random() * .1, T.SRGBColorSpace);
         put(blobs, nb, x, y + h + 1.3 * s, z, 2.5 * s, 2 * s, 2.5 * s, r0); blobs.setColorAt(nb++, cc);
         cc.offsetHSL(0, 0, .04); put(blobs, nb, x + 1.1 * s, y + h + .6 * s, z + .8 * s, 1.7 * s, 1.5 * s, 1.7 * s, r0); blobs.setColorAt(nb++, cc);
       }
@@ -415,6 +415,7 @@ export async function playFurious(X){
     g.font = '800 34px "Plus Jakarta Sans", system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; rrect(g, 58, 252, 140, 44, 14); g.fillStyle = '#3a1206'; g.fill(); g.fillStyle = '#fff'; g.fillText('ÁLVARO', 128, 275);
     const h = new T.Sprite(new T.SpriteMaterial({ map: tex(c), transparent: true })); h.scale.set(1.15, 1.15 * 300 / 256, 1); h.position.set(0, 2.3, -.05); abike.add(h); }
   const aWheels = abike.children.filter(o => o.userData.wheel);
+  let camLift = 0;
   let alv = null;   // { t0, boomAt, boom: {x,y,z} }
   // explosión: bolas de fuego, humo, onda y escombros
   const HOT = new T.Color(2.8, 2.2, 1.6);   // HDR: el fuego brilla con el bloom
@@ -682,6 +683,10 @@ export async function playFurious(X){
     if (kind === 'alvRide' && A3){ const w = smt(2.4, 4.2, u); pos = new T.Vector3(A3.x + 5.2 + 6 * w, A3.y + 1.6 + 3.5 * w, A3.z - 8.5 - 4 * w); look = new T.Vector3(A3.x - .4 * (1 - w), A3.y + 1.8 - .8 * w, A3.z + 1.2); }
     else if (kind === 'alvBoom' && alv.nuke){ const P = alv.boom, k = ease(Math.min(1, u / 6.5));
       pos = new T.Vector3(P.x + 130 + 90 * k, P.y + 38 + 30 * k, P.z - 300 - 180 * k); look = new T.Vector3(P.x, P.y + 45 + 55 * k, P.z);
+      // la cámara no puede quedar dentro de una cresta ni tras ella: se eleva hasta ver el hongo
+      { const tgt = look.clone(); tgt.y = P.y + 30; let lift = Math.max(0, Hgt(pos.x, pos.z) + 22 - pos.y); pos.y += lift;
+        for (let it = 0; it < 30; it++){ let hit = false; for (let q2 = 1; q2 < 24; q2++){ const f = q2 / 24, hx = pos.x + (tgt.x - pos.x) * f, hz = pos.z + (tgt.z - pos.z) * f, hy = pos.y + (tgt.y - pos.y) * f; if (Hgt(hx, hz) + 5 > hy){ hit = true; break; } } if (!hit) break; pos.y += 12; }
+        camLift = camLift ? camLift + (pos.y - camLift) * Math.min(1, rdt * 4) : pos.y; pos.y = camLift; }
       const sh = Math.max(0, 1 - u / 3.5) * 5 * Math.min(1, u * 3); pos.x += (Math.random() - .5) * sh; pos.y += (Math.random() - .5) * sh; }
     else if (kind === 'alvBoom'){ const P = alv.boom, k = ease(Math.min(1, u / 4)); pos = new T.Vector3(P.x + 16 + 14 * k, P.y + 6 + 10 * k, P.z - 22 - 16 * k); look = new T.Vector3(P.x, P.y + 4 + 2 * k, P.z);
       const sh = Math.max(0, 1 - u / 1.6) * 1.6; pos.x += (Math.random() - .5) * sh; pos.y += (Math.random() - .5) * sh; }
