@@ -152,3 +152,4 @@ Los botones de mentira (Productos, Soluciones, Clientes, Precios, Iniciar sesió
 ## Contribuir
 
 Cualquiera del grupo puede meter animaciones: mira [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
