@@ -139,8 +139,8 @@ export async function playThree(X){
   const heroFrame = new T.Mesh(new T.RoundedBoxGeometry(HW * 1.085, 1.085, .05, 4, .024), new T.MeshStandardMaterial({ color: 0xffffff, emissive: 0x66ccff, emissiveIntensity: 1.6, metalness: .9, roughness: .25 }));
   const hero = new T.Mesh(new T.PlaneGeometry(HW, 1), new T.MeshPhysicalMaterial({ map: hT, color: hT ? 0x555555 : 0xff55aa, emissive: hT ? 0xffffff : 0x000000, emissiveMap: hT, emissiveIntensity: .72, roughness: .38, clearcoat: 1, clearcoatRoughness: .12 }));
   hero.position.z = .027;
-  const halo = new T.Sprite(new T.SpriteMaterial({ map: tex(glowCanvas([[0, 'rgba(255,255,255,.85)'], [.45, 'rgba(255,255,255,.28)'], [1, 'rgba(255,255,255,0)']])), color: hdr(0x66ccff, 1.4), ...AB }));
-  halo.scale.set(HW * 1.75, 1.55, 1); halo.position.z = -.06; heroGroup.add(halo, heroFrame, hero);
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: tex(glowCanvas([[0, 'rgba(255,255,255,.85)'], [.45, 'rgba(255,255,255,.28)'], [1, 'rgba(255,255,255,0)']])), color: hdr(0x66ccff, .8), ...AB }));
+  halo.scale.set(HW * 1.28, 1.2, 1); halo.position.z = -.06; heroGroup.add(halo, heroFrame, hero);
   const heroBig = VH * .6, heroSmall = VH * .2, heroTopY = yAt(.022) - heroSmall / 2;
   heroGroup.position.set(0, 0, -140); heroGroup.scale.setScalar(heroBig);
   heroGroup.visible = !win;
@@ -276,9 +276,9 @@ export async function playThree(X){
   const mkSprite = (c, h) => { const s = new T.Sprite(new T.SpriteMaterial({ map: tex(c), transparent: true, depthWrite: false, color: 0xe6e6e6 })); s.scale.set(h * c.width / c.height, h, 1); s.userData.base = s.scale.clone(); s.scale.multiplyScalar(.001); add(s); sprites.push(s); return s; };
   const vsSprites = [];
   for (let i = 1; i < n; i++){
-    const vs = mkSprite(textCanvas('VS', { size: 220, w: 512, h: 300, italic: true, grad: ['#ffffff', '#ffe08a', '#ff5bd2'], glow: '#ff3aa8' }), narrow ? vsGap * .95 : Math.min(vsGap * 1.1, VH * .16));
+    const vs = mkSprite(textCanvas('VS', { size: 220, w: 512, h: 300, italic: true, grad: ['#ffffff', '#ffe08a', '#ff5bd2'], glow: '#ff3aa8' }), narrow ? vsGap * .6 : Math.min(vsGap * .8, VH * .11));
     const [x1, y1] = centers[i - 1], [x2, y2] = centers[i];
-    vs.position.set((x1 + x2) / 2, (y1 + y2) / 2, .8); vsSprites.push(vs);
+    vs.position.set((x1 + x2) / 2 + (narrow ? VW * .36 : 0), (y1 + y2) / 2 + (narrow ? 0 : arenaH * .36), .8); vsSprites.push(vs);
   }
   const labels = teams.map((t, i) => {
     const s = mkSprite(textCanvas((win ? '🏆 ' : '') + t.name, { size: 70, w: 1024, h: 130, glow: t.bar, weight: 800 }), labelH * .8);
@@ -331,12 +331,12 @@ export async function playThree(X){
       const map = tex(cardCanvas(m, t.bar, imgs[ci++]));
       const mesh = new T.Group();
       const body = new T.Mesh(bodyGeo, frameMat);
-      const front = new T.Mesh(faceGeo, new T.MeshPhysicalMaterial({ map, color: 0xb0b0b0, alphaTest: .35, roughness: .5, clearcoat: .55, clearcoatRoughness: .12, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: .5 }));
+      const front = new T.Mesh(faceGeo, new T.MeshStandardMaterial({ map, color: 0x000000, alphaTest: .35, roughness: .7, metalness: 0, envMapIntensity: .25, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: .9 }));
       front.position.z = zF;
       const back = new T.Mesh(faceGeo, bk); back.rotation.y = Math.PI; back.position.z = -zF;
       const sheen = new T.Mesh(faceGeo, new T.ShaderMaterial({ uniforms: { map: { value: map }, uT: sweepU.uTime }, ...AB, side: T.FrontSide,
         vertexShader: 'varying vec2 vUv; varying vec3 vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
-        fragmentShader: 'uniform sampler2D map; uniform float uT; varying vec2 vUv; varying vec3 vW; void main(){ float a = texture2D(map, vUv).a; if (a < .35) discard; float ph = fract(vW.x * .045 - vW.y * .03 - uT * .22); float band = exp(-pow((ph - .5) / .045, 2.)) * .8 + exp(-pow((ph - .5) / .2, 2.)) * .12; float edge = pow(1. - abs(vUv.x - .5) * 1.6, 2.); gl_FragColor = vec4(vec3(.8, .9, 1.) * band * (.6 + edge * .5), 1.); }' }));
+        fragmentShader: 'uniform sampler2D map; uniform float uT; varying vec2 vUv; varying vec3 vW; void main(){ float a = texture2D(map, vUv).a; if (a < .35) discard; float ph = fract(vW.x * .045 - vW.y * .03 - uT * .22); float band = exp(-pow((ph - .5) / .045, 2.)) * .8 + exp(-pow((ph - .5) / .2, 2.)) * .12; float edge = pow(1. - abs(vUv.x - .5) * 1.6, 2.); gl_FragColor = vec4(vec3(.8, .9, 1.) * band * (.6 + edge * .5) * .45, 1.); }' }));
       sheen.position.z = zF + .002;
       mesh.add(body, front, back, sheen);
       mesh.position.copy(diskPos); mesh.scale.setScalar(.001); add(mesh);
@@ -400,7 +400,7 @@ export async function playThree(X){
       heroGroup.rotation.y = Math.sin(et * 1.3) * .25 * k; heroGroup.rotation.z = Math.sin(et * .9) * .04 * k;
     }
     const hc = new T.Color().setHSL((et * .15) % 1, 1, .6);
-    heroFrame.material.emissive.copy(hc); halo.material.color.copy(hc).multiplyScalar(1.5);
+    heroFrame.material.emissive.copy(hc); halo.material.color.copy(hc).multiplyScalar(.8);
 
     if (!boomed && et >= tBoom){
       boomed = true; shake = 1.1; pulse = 1;
