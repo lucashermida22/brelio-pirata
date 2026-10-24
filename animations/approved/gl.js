@@ -314,7 +314,7 @@ export async function setupGL(ctx, root) {
 
   function buildSunset(faceImg) {
     const g = new T.Group(); scene.add(g);
-    scene.fog = new T.FogExp2(FOG, .00085);
+    scene.fog = new T.FogExp2(FOG, innerWidth / innerHeight < .8 ? .0011 : .00085);
 
     // cielo (domo que sigue a la cámara) + disco solar HDR (fuente de godrays) + halo
     const sky = new T.Mesh(new T.SphereGeometry(1, 40, 24), skyMat); sky.scale.setScalar(3600); sky.renderOrder = -10; sky.frustumCulled = false; g.add(sky);
@@ -526,11 +526,13 @@ export async function setupGL(ctx, root) {
   // Álvaro se va: el huevo arranca de inmediato; la cámara hace el recorrido de siempre
   function alvaro(faceImg) {
     office.visible = false; idleSrc.visible = false;
+    const port = innerWidth / innerHeight < .8;   // vertical: el sol llena el encuadre, menos bruma
     egg = { t: 0, ...buildSunset(faceImg) };
     scene.background = new T.Color(PAL.c0);
-    if (post.godrays) { post.godrays.lightSource = egg.g.children[1]; post.godrays.blendMode.opacity.value = .8; Object.assign(post.godrays.godRaysMaterial, { density: .9, decay: .93, weight: .22, exposure: .32 }); }
-    if (post.bloom) { post.bloom.intensity = .6; post.bloom.luminanceMaterial.threshold = 1.05; }
-    if (post.vignette) post.vignette.darkness = .62;
+    if (post.godrays) { post.godrays.lightSource = egg.g.children[1]; post.godrays.blendMode.opacity.value = port ? .3 : .8; Object.assign(post.godrays.godRaysMaterial, { density: .9, decay: .93, weight: .22, exposure: .32 }); }
+    if (post.bloom) { post.bloom.intensity = port ? .3 : .6; post.bloom.luminanceMaterial.threshold = 1.05; }
+    if (post.vignette) post.vignette.darkness = port ? .85 : .62;
+    renderer.toneMappingExposure = 1;
     cam.fov = 34; cam.updateProjectionMatrix();
     mode = 'alvaro';
   }
