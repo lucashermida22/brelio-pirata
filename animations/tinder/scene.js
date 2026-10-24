@@ -92,7 +92,7 @@ export async function playTinder(X){
     clear: 0x2a0818, fov: 42, near: .5, far: 160, env: false, tone: 'neutral', clipping: true,
     bloom: { intensity: .85, threshold: .88, radius: .8, smoothing: .22 },
     ao: { radius: .7, intensity: 2.2, falloff: 1.2, color: 0x3a0018 },
-    dof: { focusDistance: 14, focusRange: 7, bokehScale: 3, resolutionScale: .5 },   // fondo (corazones, bokeh) desenfocado; cartas y móvil nítidos
+    dof: { focusDistance: 16, focusRange: 16, bokehScale: 1.2, resolutionScale: .5 },   // fondo (corazones, bokeh) desenfocado; cartas y móvil nítidos
     vignette: { offset: .3, darkness: .5 }, grain: .035,
   });
   if (!ctx) return;
