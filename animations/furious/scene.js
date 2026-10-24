@@ -1,3 +1,4 @@
+import { carKit, carPaint, buildCar, buildBike, treeGeos, windify } from './models.js';
 import { $, esc, faceCanvas, flareCanvas, glowCanvas, loadImg, loadThree, noiseFactory, photoFor, rand, rrect, synth, textCanvas } from '@kit';
 
 
@@ -21,7 +22,7 @@ function ffCharCanvas(name, color){
 export async function playFurious(X){
   const { teams, win, A, later, opts } = X;
   const _vs = { get fxStop(){ return X.getStop(); }, set fxStop(f){ X.setStop(f); } };
-  await loadThree(); if (!X.isOpen()) return;
+  const T0 = await loadThree(); if (!X.isOpen()) return;
   const layer = $('#vsLayer'), fx = $('#vsFx');
   const imgs = await Promise.all([loadImg($('#vsHero').src), ...teams.flatMap(t => t.members.map(m => loadImg(photoFor(m.name))))]);
   if (!X.isOpen()) return;
@@ -29,11 +30,18 @@ export async function playFurious(X){
   const [matiImg, crocImg, torImg, paulImg, alvImg] = await Promise.all([X.media('mati/hero.jpg'), X.media('mati/croc.jpg'), X.media(FF_PHOTO.Toretto), X.media(FF_PHOTO.Paul), X.media('alvaro/alvaro.jpg')]);
   ffImgs.Toretto = torImg; ffImgs.Paul = paulImg;
   if (!X.isOpen()) return;
-  const ctx = await X.three({ clear: 0xe9b07a, fov: 38, bloom: [.7, .65, .84] });
+  // sol: malla HDR lejana que sirve de fuente a los rayos crepusculares y al bloom
+  const sunDir = new T0.Vector3(-.3, .075, -1).normalize();
+  const sunMesh = new T0.Mesh(new T0.SphereGeometry(1, 16, 8), new T0.MeshBasicMaterial({ color: new T0.Color(1, .86, .62).multiplyScalar(6), transparent: true, depthWrite: false, fog: false }));
+  sunMesh.scale.setScalar(95); sunMesh.frustumCulled = false;
+  const ctx = await X.three({ clear: 0xe9b07a, fov: 38, near: .3, far: 4000, env: false, tone: 'aces_filmic',
+    bloom: { intensity: .5, threshold: 1.3, radius: .8, smoothing: .4 },
+    ao: { radius: 2.4, intensity: 2.6, falloff: 1.6, color: 0x1c0d06 },
+    godrays: { sun: sunMesh, o: { density: .92, decay: .94, weight: .3, exposure: .3 } },
+    vignette: { offset: .3, darkness: .42 }, ca: .0005, grain: .035 });
   if (!ctx) return;
-  const { T, scene, cam, tex, renderer } = ctx, W = ctx.W, H = ctx.H, narrow = W / H < .8;
-  cam.far = 4000; cam.updateProjectionMatrix();
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+  const { T, scene, cam, tex, renderer, q } = ctx, W = ctx.W, H = ctx.H, narrow = W / H < .8, mob = q.mob;
+  scene.add(sunMesh);
   const AB = { transparent: true, blending: T.AdditiveBlending, depthWrite: false };
 
   // ---- bandas de cine + rótulos ----
@@ -70,70 +78,67 @@ export async function playFurious(X){
     return ry(z) - .35 + big + hills + bumps;
   }
 
-  // ---- cielo dorado ----
-  const sunDir = new T.Vector3(-.3, .075, -1).normalize();
-  const sky = new T.Mesh(new T.SphereGeometry(3500, 64, 32), new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false, uniforms: { sun: { value: sunDir }, glow: { value: 1 } },
-    vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
-    fragmentShader: `uniform vec3 sun; uniform float glow; varying vec3 vP;
-      void main(){ float h = vP.y; vec3 zen = vec3(.20,.33,.52), mid = vec3(.62,.62,.62), hor = vec3(1.,.70,.42), low = vec3(.80,.46,.28);
-        vec3 c = mix(hor, mid, smoothstep(.02, .18, h)); c = mix(c, zen, smoothstep(.16, .6, h)); c = mix(low, c, smoothstep(-.12, .02, h));
-        float s = max(dot(normalize(vP), sun), 0.);
-        c += vec3(1.,.6,.3) * pow(s, 4.) * .3 * glow + vec3(1.,.82,.55) * pow(s, 60.) * .5 * glow + vec3(1.,.95,.85) * pow(s, 700.) * 1.2 * glow + vec3(1.) * smoothstep(.9993, .9997, s) * 2.;
-        gl_FragColor = vec4(c, 1.); }` }));
-  scene.add(sky);
+  // ---- cielo del atardecer (Preetham) + entorno PMREM para los reflejos ----
+  const skyUp = (sk, sc) => { const u = sk.material.uniforms; u.turbidity.value = 7.5; u.rayleigh.value = 2.4; u.mieCoefficient.value = .006; u.mieDirectionalG.value = .88; u.sunPosition.value.copy(sunDir); u.showSunDisc.value = 0; u.cloudCoverage.value = .32; u.cloudDensity.value = .5; u.cloudElevation.value = .45; sk.scale.setScalar(sc); sk.frustumCulled = false; return sk; };
+  const sky = skyUp(new T.Sky(), 3500); scene.add(sky);
+  const skyBase = { mie: .006, ray: 2.4, tur: 7.5 };
+  let envTex = null;
+  { const pm = new T.PMREMGenerator(renderer), es = new T.Scene(); es.add(skyUp(new T.Sky(), 600));
+    const gr = new T.Mesh(new T.CircleGeometry(900, 24).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0x5a3a24 })); gr.position.y = -2; es.add(gr);
+    const rt = pm.fromScene(es, 0, 1, 3000); envTex = rt.texture; scene.environment = envTex; scene.environmentIntensity = .1; pm.dispose(); }
+  // el «brillo» del cielo (antes un uniform propio) ahora engorda la dispersión de Mie y el halo
+  const setGlow = v => { const u = sky.material.uniforms; u.mieCoefficient.value = skyBase.mie * v; u.turbidity.value = skyBase.tur + (v - 1) * 2.5; u.rayleigh.value = skyBase.ray + (v - 1) * .3; };
+  const envify = (m, k) => { m.envMap = envTex; m.envMapIntensity = k; return m; };
   scene.fog = new T.Fog(0xe0a070, 260, 2200);
-  scene.add(new T.HemisphereLight(0xffd8b0, 0x30241c, .45));
-  const sunL = new T.DirectionalLight(0xffb870, 1.9); sunL.castShadow = true;
-  sunL.shadow.mapSize.set(narrow ? 1024 : 2048, narrow ? 1024 : 2048); Object.assign(sunL.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 1400 }); sunL.shadow.bias = -.0008;
+  // luz física: el sol rasante (algo más alto que el disco para que el relieve reciba luz), relleno cálido y contraluz frío
+  const lightDir = new T.Vector3(-.3, .19, -1).normalize();
+  scene.add(new T.HemisphereLight(0xffd0a0, 0x3a2a20, .75));
+  const sunL = new T.DirectionalLight(0xffcc9a, 3.4);
+  ctx.sun(sunL, { size: 72, res: q.shadow, radius: 3.5, near: 10, far: 1400, bias: -.0006, normalBias: .05 });
   scene.add(sunL, sunL.target);
+  const fillL = new T.DirectionalLight(0xa9b4d8, 1.2); fillL.position.set(.4, .5, 1); scene.add(fillL);
+  const uTime = { value: 0 };
 
-  // ---- terreno con luz rasante "horneada" (relieve marcado) ----
-  const TS = 2600, TN = narrow ? 300 : 440;
+  // ---- terreno: albedo sin hornear (la luz y las sombras son reales) ----
+  const TS = 2600, TN = mob ? 300 : 440;
   const tg = new T.PlaneGeometry(TS, TS, TN, TN); tg.rotateX(-Math.PI / 2); tg.translate(0, 0, -450);
   const P = tg.attributes.position;
   for (let i = 0; i < P.count; i++) P.setY(i, Hgt(P.getX(i), P.getZ(i)));
   tg.computeVertexNormals();
-  const N = tg.attributes.normal, cols = new Float32Array(P.count * 3), col = new T.Color(), shade = new T.Color('#3b3346'), warm = new T.Color('#ffcf8a');
-  const cGrass = new T.Color('#b88d3f'), cScrub = new T.Color('#5c5f26'), cDark = new T.Color('#3a4019'), cRock = new T.Color('#9a7552'), cSand = new T.Color('#c9a46a');
+  const N = tg.attributes.normal, cols = new Float32Array(P.count * 3), col = new T.Color();
+  const cGrass = new T.Color('#a8924f'), cScrub = new T.Color('#5c5f26'), cDark = new T.Color('#3a4019'), cRock = new T.Color('#9a7552'), cSand = new T.Color('#c9a46a');
   for (let i = 0; i < P.count; i++){
-    const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
-    const dif = Math.max(0, N.getX(i) * sunDir.x + N.getY(i) * sunDir.y + N.getZ(i) * sunDir.z);
-    const k = fbm(x * .018 + 9, z * .018, 3) * .5 + .5, k2 = nz3(x * .07, 2, z * .07) * .5 + .5;
+    const x = P.getX(i), z = P.getZ(i);
+    const k = fbm(x * .018 + 9, z * .018, 3) * .5 + .5, k2 = nz3(x * .07, 2, z * .07) * .5 + .5, k3 = nz3(x * .4, 5, z * .4) * .5 + .5;
     col.copy(cGrass).lerp(cScrub, Math.min(1, k * 1.25)).lerp(cDark, Math.max(0, k2 - .45) * 1.4);
     const slope = 1 - N.getY(i); if (slope > .35) col.lerp(cRock, Math.min(1, (slope - .35) * 2.2));
     if (roadDist(x, z) < 8) col.lerp(cSand, .55);
-    const lit = .34 + 1.35 * Math.pow(dif, .8);
-    col.multiplyScalar(lit); col.lerp(shade, Math.max(0, .55 - dif) * .55); col.lerp(warm, Math.pow(dif, 3) * .25);
+    col.multiplyScalar(.82 + .3 * k3);   // moteado fino de la hierba seca
     cols.set([col.r, col.g, col.b], i * 3);
   }
   tg.setAttribute('color', new T.BufferAttribute(cols, 3));
-  const terrain = new T.Mesh(tg, new T.MeshBasicMaterial({ vertexColors: true })); scene.add(terrain);
+  const terrain = new T.Mesh(tg, new T.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 })); terrain.receiveShadow = true; scene.add(terrain);
 
   // monte bajo (chaparral) junto a la carretera
-  const BN = narrow ? 5000 : 11000;
-  const bushes = new T.InstancedMesh(new T.IcosahedronGeometry(1, 1), new T.MeshLambertMaterial({ color: 0xffffff }), BN);
-  { const d = new T.Object3D(), c = new T.Color();
+  const G = treeGeos(T, mob);
+  const BN = mob ? 3500 : 8000;
+  const bushes = new T.InstancedMesh(G.bush, windify(new T.MeshStandardMaterial({ color: 0xffffff, roughness: .95, metalness: 0 }), uTime, .05), BN);
+  { const d = new T.Object3D(), c = new T.Color(); let nb = 0;
     for (let i = 0; i < BN; i++){
       const z = 650 - Math.random() * 1750, side = Math.random() < .5 ? -1 : 1, off = 9 + Math.pow(Math.random(), 1.6) * 170;
       const base = z > zF ? xm(z) : xb(rand(n), z), x = base + side * off;
       if (roadDist(x, z) < 8.5) continue;
       const s = .45 + Math.pow(Math.random(), 2) * 1.5;
-      d.position.set(x, Hgt(x, z) - s * .12, z); d.scale.set(s, s * (.42 + Math.random() * .25), s); d.rotation.set(0, Math.random() * 6, 0); d.updateMatrix(); bushes.setMatrixAt(i, d.matrix);
-      c.setHSL(.15 + Math.random() * .07, .35 + Math.random() * .2, .1 + Math.random() * .09); bushes.setColorAt(i, c);
-    } bushes.instanceColor.needsUpdate = true; }
-  bushes.castShadow = true; scene.add(bushes);
-
-  // el terreno recibe las sombras (capa de sombra sobre el color horneado)
-  const shadowM = new T.ShadowMaterial({ color: 0x2a1408, opacity: .3 });
-  const terrShadow = new T.Mesh(tg, shadowM); terrShadow.receiveShadow = true; scene.add(terrShadow);
+      d.position.set(x, Hgt(x, z) - s * .12, z); d.scale.set(s, s * (.42 + Math.random() * .25), s); d.rotation.set(0, Math.random() * 6, 0); d.updateMatrix(); bushes.setMatrixAt(nb, d.matrix);
+      c.setHSL(.15 + Math.random() * .07, .35 + Math.random() * .2, .1 + Math.random() * .09, T.SRGBColorSpace); bushes.setColorAt(nb++, c);
+    } bushes.count = nb; bushes.instanceColor.needsUpdate = true; }
+  bushes.castShadow = true; bushes.receiveShadow = true; scene.add(bushes);
 
   // árboles: pinos piñoneros, cipreses y encinas a lo largo de los caminos
-  const TN2 = narrow ? 900 : 2200, TB = TN2 * 2, treeRec = []; let curBase = null;
-  const trunkG = new T.CylinderGeometry(.16, .3, 1, 6); trunkG.translate(0, .5, 0);
-  const blobG = new T.IcosahedronGeometry(1, 1), coneG = new T.ConeGeometry(1, 1, 8); coneG.translate(0, .5, 0);
-  const leafM = new T.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
-  const trunks = new T.InstancedMesh(trunkG, new T.MeshLambertMaterial({ color: 0x4a3426 }), TN2);
-  const blobs = new T.InstancedMesh(blobG, leafM, TB), cones = new T.InstancedMesh(coneG, leafM, TN2);
+  const TN2 = mob ? 900 : 2200, TB = TN2 * 2, treeRec = []; let curBase = null;
+  const leafM = windify(new T.MeshStandardMaterial({ color: 0xffffff, roughness: .92, metalness: 0 }), uTime, .14), coneM = windify(new T.MeshStandardMaterial({ color: 0xffffff, roughness: .92, metalness: 0 }), uTime, .1, 0);
+  const trunks = new T.InstancedMesh(G.trunk, new T.MeshStandardMaterial({ color: 0x4a3426, roughness: .95 }), TN2);
+  const blobs = new T.InstancedMesh(G.blob, leafM, TB), cones = new T.InstancedMesh(G.cone, coneM, TN2);
   { const d = new T.Object3D(), cc = new T.Color(); let nt = 0, nb = 0, nc = 0;
     const put = (im, i, x, y, z, sx, sy, sz, ry0) => { d.position.set(x, y, z); d.scale.set(sx, sy, sz); d.rotation.set(0, ry0, 0); d.updateMatrix(); im.setMatrixAt(i, d.matrix); treeRec.push({ im, i, x, y, z, sx, sy, sz, r0: ry0, b: curBase }); };
     for (let tries = 0; tries < TN2 * 3 && nt < TN2 && nb < TB - 2; tries++){
@@ -145,14 +150,14 @@ export async function playFurious(X){
       const y = Hgt(x, z) - .2; curBase = [x, y, z]; const s = .6 + Math.random() * .55, r0 = Math.random() * 6.28, kind = Math.random();
       if (kind < .38){ // pino piñonero: tronco alto, copa en paraguas
         const h = 5.5 * s; put(trunks, nt++, x, y, z, s, h, s, r0);
-        cc.setHSL(.24 + Math.random() * .06, .32, .14 + Math.random() * .07); put(blobs, nb, x, y + h, z, 2.5 * s, .85 * s, 2.3 * s, r0); blobs.setColorAt(nb++, cc);
+        cc.setHSL(.24 + Math.random() * .06, .32, .14 + Math.random() * .07, T.SRGBColorSpace); put(blobs, nb, x, y + h, z, 2.5 * s, .85 * s, 2.3 * s, r0); blobs.setColorAt(nb++, cc);
         cc.offsetHSL(0, 0, .03); put(blobs, nb, x + .9 * s, y + h + .35 * s, z - .6 * s, 1.6 * s, .7 * s, 1.5 * s, r0 + 1); blobs.setColorAt(nb++, cc);
       } else if (kind < .7){ // ciprés: llama verde oscura
         put(trunks, nt++, x, y, z, s * .8, 1.2 * s, s * .8, r0);
-        cc.setHSL(.29 + Math.random() * .05, .38, .1 + Math.random() * .05); put(cones, nc, x, y + .8 * s, z, 1.05 * s, (7 + Math.random() * 4) * s, 1.05 * s, r0); cones.setColorAt(nc++, cc);
+        cc.setHSL(.29 + Math.random() * .05, .38, .1 + Math.random() * .05, T.SRGBColorSpace); put(cones, nc, x, y + .8 * s, z, 1.05 * s, (7 + Math.random() * 4) * s, 1.05 * s, r0); cones.setColorAt(nc++, cc);
       } else { // encina: dos copas redondas
         const h = 2.6 * s; put(trunks, nt++, x, y, z, s * 1.2, h, s * 1.2, r0);
-        cc.setHSL(.17 + Math.random() * .08, .36, .17 + Math.random() * .08);
+        cc.setHSL(.17 + Math.random() * .08, .36, .17 + Math.random() * .08, T.SRGBColorSpace);
         put(blobs, nb, x, y + h + 1.3 * s, z, 2.5 * s, 2 * s, 2.5 * s, r0); blobs.setColorAt(nb++, cc);
         cc.offsetHSL(0, 0, .04); put(blobs, nb, x + 1.1 * s, y + h + .6 * s, z + .8 * s, 1.7 * s, 1.5 * s, 1.7 * s, r0); blobs.setColorAt(nb++, cc);
       }
@@ -201,7 +206,7 @@ export async function playFurious(X){
       if (s < segs){ const a = s * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
     }
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
-    const m = new T.Mesh(g, new T.MeshStandardMaterial({ map, roughness: .9, metalness: 0 }));
+    const m = new T.Mesh(g, new T.MeshStandardMaterial({ map, roughness: map === gravelT ? .96 : .58, metalness: 0 }));
     m.receiveShadow = true; scene.add(m);
   }
   const mainW = Math.max(8.5, n * LANE + 2.6);
@@ -213,18 +218,18 @@ export async function playFurious(X){
   { const paths = [[xm, Z0 + 300, win ? -1300 : zF, mainW / 2 + 1.3]]; if (!win) for (let i = 0; i < n; i++) paths.push([z => xb(i, z), zF - JL - 4, -1600, 4.9]);
     const posts = [], d = new T.Object3D();
     paths.forEach(([cx, z1, z2, half]) => { for (let z = z1; z > z2; z -= 22){ const x = cx(z), dx = cx(z - 1) - x, L = Math.hypot(dx, 1), nx = 1 / L, nzv = dx / L; [-1, 1].forEach(sd => posts.push([x + sd * nx * half, ry(z), z + sd * nzv * half])); } });
-    const pm = new T.InstancedMesh(new T.BoxGeometry(.13, 1.05, .13).translate(0, .52, 0), new T.MeshLambertMaterial({ color: 0xe9e4da }), posts.length);
-    const rm = new T.InstancedMesh(new T.BoxGeometry(.15, .16, .15).translate(0, .88, 0), new T.MeshBasicMaterial({ color: 0xff8a2a }), posts.length);
+    const pm = new T.InstancedMesh(new T.BoxGeometry(.13, 1.05, .13).translate(0, .52, 0), new T.MeshStandardMaterial({ color: 0xe9e4da, roughness: .7 }), posts.length);
+    const rm = new T.InstancedMesh(new T.BoxGeometry(.15, .16, .15).translate(0, .88, 0), new T.MeshBasicMaterial({ color: new T.Color(0xff8a2a).multiplyScalar(2.6) }), posts.length);
     posts.forEach(([x, y, z], i) => { d.position.set(x, y, z); d.updateMatrix(); pm.setMatrixAt(i, d.matrix); rm.setMatrixAt(i, d.matrix); });
-    pm.castShadow = true; scene.add(pm, rm); }
+    pm.castShadow = true; pm.receiveShadow = true; scene.add(pm, rm); }
   // postes de teléfono con sus cables combados: el viaje de siempre
   { const pz = [], d = new T.Object3D(); for (let z = Z0 + 280; z > (win ? -1250 : -1500); z -= 42) pz.push(z);
     const cxP = z => win || z > zF ? xm(z) : xb(0, z), off = (z) => (z > zF || win ? mainW / 2 : 3.6) + 5.5;
-    const poleM = new T.MeshLambertMaterial({ color: 0x5a4636 });
+    const poleM = new T.MeshStandardMaterial({ color: 0x5a4636, roughness: .9 });
     const poles = new T.InstancedMesh(new T.CylinderGeometry(.14, .2, 9.5, 6).translate(0, 4.75, 0), poleM, pz.length), bars = new T.InstancedMesh(new T.BoxGeometry(2.6, .16, .16), poleM, pz.length);
     const tops = pz.map((z, i) => { const x = cxP(z) - off(z), y = Hgt(x, z) - .1; d.position.set(x, y, z); d.rotation.set(0, Math.atan2(cxP(z - 1) - cxP(z), 1), 0); d.updateMatrix(); poles.setMatrixAt(i, d.matrix);
       d.position.y = y + 8.9; d.updateMatrix(); bars.setMatrixAt(i, d.matrix); return [x, y + 8.9, z]; });
-    poles.castShadow = bars.castShadow = true; scene.add(poles, bars);
+    poles.castShadow = bars.castShadow = true; poles.receiveShadow = bars.receiveShadow = true; scene.add(poles, bars);
     const wp = []; for (let i = 0; i + 1 < tops.length; i++){ const [ax, ay, az] = tops[i], [bx, by, bz] = tops[i + 1];
       [-1.15, 0, 1.15].forEach(o => { let px = ax + o, py = ay + .06, pzz = az; for (let s = 1; s <= 10; s++){ const k = s / 10, sag = Math.sin(k * Math.PI) * 1.1;
         const qx = ax + (bx - ax) * k + o, qy = ay + (by - ay) * k + .06 - sag, qz = az + (bz - az) * k; wp.push(px, py, pzz, qx, qy, qz); px = qx; py = qy; pzz = qz; } }); }
@@ -244,31 +249,27 @@ export async function playFurious(X){
     g.fillStyle = '#f2e6cf'; g.font = '800 86px "Plus Jakarta Sans", system-ui, sans-serif'; g.fillText('LERELIO', 380, 190); g.font = '500 40px Geist, system-ui, sans-serif'; g.fillStyle = '#e8a35a'; g.fillText('presenta: el último viaje', 384, 260);
     const zB = Z0 - 70, xB = xm(zB) + mainW / 2 + 8;
     const board = new T.Group(); board.position.set(xB, ry(zB), zB); board.rotation.y = -.45; scene.add(board);
-    const panel = new T.Mesh(new T.PlaneGeometry(12, 6), new T.MeshBasicMaterial({ map: tex(bc), color: 0xd8d0c8, side: T.DoubleSide })); panel.position.y = 7.5; panel.castShadow = true; board.add(panel);
-    [-4, 4].forEach(x => { const p = new T.Mesh(new T.CylinderGeometry(.18, .2, 7.5, 8), new T.MeshStandardMaterial({ color: 0x55504a })); p.position.set(x, 3.75, -.2); board.add(p); });
+    const bt = tex(bc), steel = new T.MeshStandardMaterial({ color: 0x55504a, roughness: .5, metalness: .7 });
+    // la valla se ilumina por dentro (emisiva) para que se lea a contraluz
+    const panel = new T.Mesh(new T.BoxGeometry(12, 6, .3), [steel, steel, steel, steel, new T.MeshStandardMaterial({ map: bt, emissiveMap: bt, emissive: 0xffd6a8, emissiveIntensity: .55, roughness: .6 }), steel]);
+    panel.position.y = 7.5; panel.castShadow = true; panel.receiveShadow = true; board.add(panel);
+    const fr = new T.Mesh(new T.BoxGeometry(12.5, 6.5, .2), steel); fr.position.set(0, 7.5, -.12); fr.castShadow = true; board.add(fr);
+    [-4, 4].forEach(x => { const p = new T.Mesh(new T.CylinderGeometry(.18, .2, 7.5, 10), steel); p.position.set(x, 3.75, -.3); p.castShadow = true; board.add(p);
+      const lamp = new T.Mesh(new T.BoxGeometry(.9, .14, .3), new T.MeshBasicMaterial({ color: new T.Color(0xfff0cc).multiplyScalar(5) })); lamp.position.set(x * .9, 11, .4); board.add(lamp); });
   }
 
   // ---- coches ----
-  const body = new T.BoxGeometry(2, .58, 4.6, 1, 1, 6), cabG = new T.BoxGeometry(1.74, .56, 2.5), wheelG = new T.CylinderGeometry(.43, .43, .34, 18), spoilerG = new T.BoxGeometry(1.9, .07, .42);
-  { const p = body.attributes.position; for (let i = 0; i < p.count; i++){ const y = p.getY(i), z = p.getZ(i); if (y > 0 && z < -1.1) p.setY(i, y - .17 * Math.min(1, (-z - 1.1) / 1.2)); if (y > 0 && z > 1.9) p.setY(i, y - .05); } body.computeVertexNormals(); }
-  { const p = cabG.attributes.position; for (let i = 0; i < p.count; i++){ if (p.getY(i) > 0){ p.setZ(i, p.getZ(i) * .6 + .28); p.setX(i, p.getX(i) * .88); } } cabG.computeVertexNormals(); }
-  wheelG.rotateZ(Math.PI / 2);
-  const tyre = new T.MeshStandardMaterial({ color: 0x0e0e0e, roughness: .9 }), rimM = new T.MeshStandardMaterial({ color: 0xbfc4cc, metalness: .9, roughness: .25 });
-  const headM = new T.MeshBasicMaterial({ color: 0xfff1cf }), tailM = new T.MeshBasicMaterial({ color: 0xff2020 });
+  const K = carKit(T); Object.values(K.mats).forEach(m => { if (m.isMeshStandardMaterial) envify(m, m === K.mats.glass ? 1.6 : 1); });
+  const tailGlowT = tex(glowCanvas([[0, 'rgba(255,60,40,1)'], [.3, 'rgba(255,40,20,.5)'], [1, 'rgba(255,20,0,0)']]));
   const PAINT = [0xf2f2f4, 0x2a2c31, 0x8a1a1a, 0x1a3a7a];
   let ii = 0;
   const per = Math.max(...teams.map(t => t.members.length));
   const caps = teams.map(t => rand(t.members.length));
   const cars = teams.flatMap((t, ti) => t.members.map((m, k) => {
-    const g = new T.Group();
-    const paint = new T.MeshStandardMaterial({ color: win ? PAINT[ti % 4] : 0x9a9ca4, metalness: .6, roughness: .26 });
-    const b = new T.Mesh(body, paint); b.position.y = .64; b.castShadow = true; g.add(b);
-    const glass = new T.MeshStandardMaterial({ color: 0x141820, metalness: .9, roughness: .08, transparent: true, opacity: .55 });
-    const cab = new T.Mesh(cabG, glass); cab.position.set(0, 1.2, .1); cab.castShadow = true; g.add(cab);
-    const sp = new T.Mesh(spoilerG, paint); sp.position.set(0, 1.12, 2.1); g.add(sp);
-    [[-1, 1.48], [1, 1.48], [-1, -1.48], [1, -1.48]].forEach(([x, z]) => { const w = new T.Mesh(wheelG, tyre); w.position.set(x * .99, .43, z); w.castShadow = true; g.add(w); const r = new T.Mesh(new T.CircleGeometry(.24, 14), rimM); r.position.set(x * 1.17, .43, z); r.rotation.y = x * Math.PI / 2; g.add(r); });
-    [-.62, .62].forEach(x => { const h = new T.Mesh(new T.BoxGeometry(.4, .13, .05), headM); h.position.set(x, .7, -2.31); g.add(h); const tl = new T.Mesh(new T.BoxGeometry(.44, .12, .05), tailM); tl.position.set(x, .74, 2.31); g.add(tl); });
-    const glowM = new T.MeshBasicMaterial({ color: new T.Color(t.bar), ...AB, opacity: 0 });
+    const paint = envify(carPaint(T, win ? PAINT[ti % 4] : 0x9a9ca4), 1.3);
+    const car = buildCar(T, K, paint), g = car.g, cab = car.cab;
+    [-.62, .62].forEach(x => { const gl = new T.Sprite(new T.SpriteMaterial({ map: tailGlowT, ...AB, opacity: .55, color: new T.Color(1.5, .7, .7), fog: false })); gl.scale.set(.55, .3, 1); gl.position.set(x, .98, 2.45); g.add(gl); });
+    const glowM = new T.MeshBasicMaterial({ color: new T.Color(t.bar).multiplyScalar(1.6), ...AB, opacity: 0 });
     const under = new T.Mesh(new T.PlaneGeometry(2.7, 5.4), glowM); under.rotation.x = -Math.PI / 2; under.position.y = .06; g.add(under);
     const isCap = k === caps[ti], faceT = tex(faceCanvas(m.name, isCap ? '#ffcc33' : t.bar, imgs[ii++], isCap ? '★ ' + m.name : m.name));
     const face = new T.Sprite(new T.SpriteMaterial({ map: faceT, transparent: true })); const fs0 = isCap ? 2.05 : 1.45; face.scale.set(fs0, fs0 * 300 / 256, 1); face.position.y = isCap ? 3.1 : 2.8; g.add(face);
@@ -282,7 +283,7 @@ export async function playFurious(X){
       pb = new T.Sprite(new T.SpriteMaterial({ map: pT, transparent: true })); pb.scale.set(1.3, 1.3 * 300 / 256, 1); pb.position.set(1.05, 2.95, 0); g.add(pb); face.position.x = -.7;
     }
     scene.add(g);
-    return { g, paint, glowM, face, driver, cab, ti, k, m, team: t, fs0, pass, pb, passName, ph: Math.random() * 6.28 };
+    return { g, paint, roof: car.roof, wheels: car.wheels, glowM, face, driver, cab, ti, k, m, team: t, fs0, pass, pb, passName, ph: Math.random() * 6.28 };
   }));
   cars.forEach(c => { const cp = caps[c.ti]; c.slot = c.k === cp ? 0 : c.k < cp ? c.k + 1 : c.k; c.captain = c.k === cp; });
   const haloT = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 256; const g = cv.getContext('2d'); g.strokeStyle = '#ffd24a'; g.shadowColor = '#ffb020'; g.shadowBlur = 18; g.lineWidth = 10; g.beginPath(); g.arc(128, 128, 100, 0, Math.PI * 2); g.stroke(); g.lineWidth = 4; g.setLineDash([14, 12]); g.beginPath(); g.arc(128, 128, 82, 0, Math.PI * 2); g.stroke(); return tex(cv); })();
@@ -353,28 +354,18 @@ export async function playFurious(X){
 
   // ---- easter egg: Mati en moto con su Stand ----
   const bike = new T.Group(); bike.visible = false; scene.add(bike);
-  const bpM = new T.MeshStandardMaterial({ color: 0x5b1aa8, metalness: .75, roughness: .28 }), bkM = new T.MeshStandardMaterial({ color: 0x111114, metalness: .5, roughness: .5 });
+  const bpM = envify(new T.MeshPhysicalMaterial({ color: 0x5b1aa8, metalness: .7, roughness: .3, clearcoat: 1, clearcoatRoughness: .06 }), 1.3), bkM = new T.MeshStandardMaterial({ color: 0x111114, metalness: .5, roughness: .5 });
   const shirtM = new T.MeshStandardMaterial({ color: 0x161616, roughness: .8 }), pantM = new T.MeshStandardMaterial({ color: 0xdedbd2, roughness: .9 });
-  const bWheels = [-.78, .74].map(z => { const w = new T.Mesh(new T.TorusGeometry(.34, .12, 10, 26), tyre); w.rotation.y = Math.PI / 2; w.position.set(0, .46, z); w.castShadow = true; bike.add(w); return w; });
-  const bpart = (geo, m, x, y, z, rx) => { const o = new T.Mesh(geo, m); o.position.set(x, y, z); if (rx) o.rotation.x = rx; o.castShadow = true; bike.add(o); return o; };
-  bpart(new T.BoxGeometry(.24, .26, 1.25), bkM, 0, .72, 0);
-  bpart(new T.BoxGeometry(.46, .3, .62), bpM, 0, .98, -.22);
-  bpart(new T.BoxGeometry(.36, .12, .7), bkM, 0, .98, .42);
-  bpart(new T.BoxGeometry(.3, .2, .5), bpM, 0, .86, .8, .3);
-  bpart(new T.CylinderGeometry(.04, .04, .8, 8), rimM, 0, .9, -.66, -.35);
-  bpart(new T.BoxGeometry(.86, .05, .05), bkM, 0, 1.28, -.6);
-  bpart(new T.SphereGeometry(.12, 12, 8), headM, 0, 1.06, -.86);
-  bpart(new T.CylinderGeometry(.06, .07, .7, 8), rimM, .2, .6, .45, Math.PI / 2 - .2);
-  bpart(new T.BoxGeometry(.52, .62, .3), shirtM, 0, 1.52, .12, -.55);
-  [-.21, .21].forEach(x => { bpart(new T.BoxGeometry(.17, .17, .62), pantM, x, 1.06, .2); bpart(new T.BoxGeometry(.13, .13, .62), shirtM, x * 1.6, 1.46, -.3, .5); });
-  const nBase = bike.children.length;   // piezas de la moto sin el piloto (para la moto de Álvaro)
+  const bpart = o => { o.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); bike.add(o); return o; };
+  const bWheels = buildBike(T, bpart, { paint: bpM, frame: bkM, shirt: shirtM, pant: pantM, chrome: K.mats.chrome, tyre: K.mats.tyre, head: K.mats.head, skin: pantM });
+  const nBase = bike.children.length;   // piezas de la moto sin el piloto... incluye al piloto (para la moto de Álvaro)
   { const c = document.createElement('canvas'); c.width = 256; c.height = 300; const g = c.getContext('2d');
     g.save(); g.beginPath(); g.arc(128, 128, 112, 0, 7); g.clip(); g.fillStyle = '#222'; g.fillRect(0, 0, 256, 256); if (matiImg) g.drawImage(matiImg, 200, 8, 170, 170, 16, 16, 224, 224); g.restore();
     g.lineWidth = 12; g.strokeStyle = '#b06cff'; g.beginPath(); g.arc(128, 128, 112, 0, 7); g.stroke();
     g.font = '800 34px "Plus Jakarta Sans", system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; rrect(g, 68, 252, 120, 44, 14); g.fillStyle = '#2a0a4a'; g.fill(); g.fillStyle = '#fff'; g.fillText('MATI', 128, 275);
     const h = new T.Sprite(new T.SpriteMaterial({ map: tex(c), transparent: true })); h.scale.set(1.15, 1.15 * 300 / 256, 1); h.position.set(0, 2.3, -.05); bike.add(h); }
   if (win){   // Paul vuelve de paquete
-    bpart(new T.BoxGeometry(.48, .58, .3), new T.MeshStandardMaterial({ color: 0xf0f0f0 }), 0, 1.5, .74, -.2);
+    { const pt = new T.Mesh(new T.CapsuleGeometry(.2, .3, 6, 14), new T.MeshStandardMaterial({ color: 0xf0f0f0, roughness: .8 })); pt.position.set(0, 1.5, .78); pt.rotation.x = -.25; pt.scale.set(1.2, 1, .8); bpart(pt); }
     const p = new T.Sprite(new T.SpriteMaterial({ map: tex(ffCharCanvas('Paul', '#7fd3ff')), transparent: true })); p.scale.set(.85, .85 * 300 / 256, 1); p.position.set(.5, 2.05, .8); bike.add(p);
   }
   const standC = document.createElement('canvas'); standC.width = 320; standC.height = 710;
@@ -407,29 +398,31 @@ export async function playFurious(X){
 
   // ---- easter egg 2: Álvaro en moto… y se la pega ----
   const abike = new T.Group(); abike.visible = false; scene.add(abike);
-  { const alvShirt = new T.MeshStandardMaterial({ color: 0x5c1426, roughness: .75 }), alvPant = new T.MeshStandardMaterial({ color: 0x23262e, roughness: .85 }), alvBody = new T.MeshStandardMaterial({ color: 0xb3121b, metalness: .7, roughness: .3 });
+  { const alvShirt = new T.MeshStandardMaterial({ color: 0x5c1426, roughness: .75 }), alvPant = new T.MeshStandardMaterial({ color: 0x23262e, roughness: .85 }), alvBody = envify(new T.MeshPhysicalMaterial({ color: 0xb3121b, metalness: .7, roughness: .3, clearcoat: 1, clearcoatRoughness: .06 }), 1.3);
     bike.children.slice(0, nBase).forEach(o => { const k = o.clone(); if (k.material === shirtM) k.material = alvShirt; else if (k.material === pantM) k.material = alvPant; else if (k.material === bpM) k.material = alvBody; abike.add(k); });
     const c = document.createElement('canvas'); c.width = 256; c.height = 300; const g = c.getContext('2d');
     g.save(); g.beginPath(); g.arc(128, 128, 112, 0, 7); g.clip(); g.fillStyle = '#222'; g.fillRect(0, 0, 256, 256); if (alvImg) g.drawImage(alvImg, 118, 48, 202, 202, 16, 16, 224, 224); g.restore();
     g.lineWidth = 12; g.strokeStyle = '#ff7a1a'; g.beginPath(); g.arc(128, 128, 112, 0, 7); g.stroke();
     g.font = '800 34px "Plus Jakarta Sans", system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; rrect(g, 58, 252, 140, 44, 14); g.fillStyle = '#3a1206'; g.fill(); g.fillStyle = '#fff'; g.fillText('ÁLVARO', 128, 275);
     const h = new T.Sprite(new T.SpriteMaterial({ map: tex(c), transparent: true })); h.scale.set(1.15, 1.15 * 300 / 256, 1); h.position.set(0, 2.3, -.05); abike.add(h); }
-  const aWheels = abike.children.filter(o => o.geometry && o.geometry.type === 'TorusGeometry');
+  const aWheels = abike.children.filter(o => o.userData.wheel);
   let alv = null;   // { t0, boomAt, boom: {x,y,z} }
   // explosión: bolas de fuego, humo, onda y escombros
+  const HOT = new T.Color(2.8, 2.2, 1.6);   // HDR: el fuego brilla con el bloom
   const fireT = tex(glowCanvas([[0, 'rgba(255,255,220,1)'], [.18, 'rgba(255,214,90,.95)'], [.45, 'rgba(255,110,20,.75)'], [.75, 'rgba(160,30,0,.35)'], [1, 'rgba(60,0,0,0)']]));
   const smokeT = tex(glowCanvas([[0, 'rgba(40,34,30,.85)'], [.5, 'rgba(60,52,46,.45)'], [1, 'rgba(70,60,52,0)']]));
   const ringT = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); const gr = g.createRadialGradient(128, 128, 70, 128, 128, 126); gr.addColorStop(0, 'rgba(255,220,160,0)'); gr.addColorStop(.7, 'rgba(255,230,190,.9)'); gr.addColorStop(1, 'rgba(255,200,140,0)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256); return tex(c); })();
   const fx3 = [];   // partículas { s, v:Vector3, t, life, grow, kind }
-  const boomLight = new T.PointLight(0xff8a30, 0, 120, 1.6); scene.add(boomLight);
+  const boomLight = new T.PointLight(0xff8a30, 0, 140, 2); scene.add(boomLight);
+  let boomI = 0, boomDur = 1.8;
   const ring = new T.Mesh(new T.PlaneGeometry(1, 1), new T.MeshBasicMaterial({ map: ringT, ...AB, opacity: 0, side: T.DoubleSide })); ring.rotation.x = -Math.PI / 2; scene.add(ring);
   function burst(P, big){
     const nF = big ? 26 : 9, nS = big ? 22 : 7;
-    for (let i = 0; i < nF; i++){ const sp = new T.Sprite(new T.SpriteMaterial({ map: fireT, ...AB, opacity: 1 })); sp.position.copy(P).add(new T.Vector3((Math.random() - .5) * 3, Math.random() * 2, (Math.random() - .5) * 3)); scene.add(sp);
+    for (let i = 0; i < nF; i++){ const sp = new T.Sprite(new T.SpriteMaterial({ map: fireT, ...AB, opacity: 1, color: HOT })); sp.position.copy(P).add(new T.Vector3((Math.random() - .5) * 3, Math.random() * 2, (Math.random() - .5) * 3)); scene.add(sp);
       fx3.push({ s: sp, v: new T.Vector3((Math.random() - .5) * 10, 4 + Math.random() * 9, (Math.random() - .5) * 10), t: 0, life: .9 + Math.random() * .9, grow: (big ? 9 : 4) + Math.random() * 5, kind: 'fire' }); }
     for (let i = 0; i < nS; i++){ const sp = new T.Sprite(new T.SpriteMaterial({ map: smokeT, transparent: true, depthWrite: false, opacity: 0 })); sp.position.copy(P).add(new T.Vector3((Math.random() - .5) * 4, 1 + Math.random() * 2, (Math.random() - .5) * 4)); scene.add(sp);
       fx3.push({ s: sp, v: new T.Vector3((Math.random() - .5) * 3, 2.5 + Math.random() * 3, (Math.random() - .5) * 3), t: -Math.random() * .4, life: 3.5 + Math.random() * 2, grow: (big ? 14 : 7) + Math.random() * 6, kind: 'smoke' }); }
-    for (let i = 0; i < (big ? 30 : 8); i++){ const m = new T.Mesh(new T.BoxGeometry(.2 + Math.random() * .4, .1 + Math.random() * .3, .2 + Math.random() * .5), new T.MeshStandardMaterial({ color: [0x222222, 0xb3121b, 0x9a9ca4, 0x444444][i % 4], metalness: .5, roughness: .5 })); m.position.copy(P).add(new T.Vector3(0, 1, 0)); scene.add(m);
+    for (let i = 0; i < (big ? 30 : 8); i++){ const m = new T.Mesh(new T.BoxGeometry(.2 + Math.random() * .4, .1 + Math.random() * .3, .2 + Math.random() * .5), new T.MeshStandardMaterial({ color: [0x222222, 0xb3121b, 0x9a9ca4, 0x444444][i % 4], metalness: .5, roughness: .5, emissive: 0xff5a10, emissiveIntensity: 1.6 })); m.castShadow = true; m.position.copy(P).add(new T.Vector3(0, 1, 0)); scene.add(m);
       fx3.push({ s: m, v: new T.Vector3((Math.random() - .5) * 26, 6 + Math.random() * 16, (Math.random() - .5) * 26), t: 0, life: 3, grow: 0, kind: 'debris', w: new T.Vector3(Math.random() * 9, Math.random() * 9, Math.random() * 9) }); }
   }
   // el negro y el «JODER, ÁLVARO»
@@ -455,33 +448,34 @@ export async function playFurious(X){
     for (let i = 0; i < (narrow ? 110 : 170); i++) mk('cap', { a: Math.random() * 6.28, b: Math.random() * 6.28, r: .55 + Math.random() * .5 });
     for (let i = 0; i < (narrow ? 50 : 80); i++) mk('stem', { f: Math.random(), a: Math.random() * 6.28 });
     for (let i = 0; i < (narrow ? 60 : 90); i++) mk('skirt', { a: Math.random() * 6.28, r: .6 + Math.random() * .6 });
-    const core = []; for (let i = 0; i < 14; i++){ const sp = new T.Sprite(new T.SpriteMaterial({ map: fireT, ...AB, opacity: 0, fog: false })); g.add(sp); core.push({ s: sp, a: Math.random() * 6.28, r: Math.random() }); }
-    const ball = new T.Mesh(new T.SphereGeometry(1, 32, 20), new T.MeshBasicMaterial({ color: 0xfff2c8, ...AB, opacity: 1, fog: false })); ball.position.copy(P); g.add(ball);
+    const core = []; for (let i = 0; i < 14; i++){ const sp = new T.Sprite(new T.SpriteMaterial({ map: fireT, ...AB, opacity: 0, fog: false, color: HOT })); g.add(sp); core.push({ s: sp, a: Math.random() * 6.28, r: Math.random() }); }
+    const ball = new T.Mesh(new T.SphereGeometry(1, 32, 20), new T.MeshBasicMaterial({ color: new T.Color(0xfff2c8).multiplyScalar(5), ...AB, opacity: 1, fog: false })); ball.position.copy(P); g.add(ball);
     const dome = new T.Mesh(new T.SphereGeometry(1, 40, 20, 0, 6.29, 0, Math.PI / 2), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide, fog: false })); dome.position.copy(P); g.add(dome);
     NK = { P: P.clone(), t: 0, g, parts, core, ball, dome, knocked: new Uint8Array(treeRec.length) };
     // un destello que lo quema todo
     flash.animate([{ opacity: 1 }, { opacity: 1, offset: .18 }, { opacity: 0 }], { duration: 2600, easing: 'ease-out' });
     if (S){ S.rumble && S.rumble(6.5); S.boom(true); later(() => S && S.boom(true), 260); later(() => S && S.boom(true), 900); }
   }
-  const nq = new T.Quaternion(), nq2 = new T.Quaternion(), nAx = new T.Vector3(), nUp = new T.Vector3(0, 1, 0), nO = new T.Object3D(), nV = new T.Vector3(), cHot = new T.Color(1, .78, .36), cCool = new T.Color(.5, .4, .35), cGlow = new T.Color(1, .45, .12);
+  const nq = new T.Quaternion(), nq2 = new T.Quaternion(), nAx = new T.Vector3(), nUp = new T.Vector3(0, 1, 0), nO = new T.Object3D(), nV = new T.Vector3(), cSmoke = new T.Color(.34, .27, .23), cLit = new T.Color(1.15, .8, .52), cHot = new T.Color(1, .78, .36), cCool = new T.Color(.5, .4, .35), cGlow = new T.Color(1, .45, .12);
   function nukeTick(dt){
     const N = NK; N.t += dt; const t = N.t, P = N.P;
     const H = 165 * (1 - Math.exp(-t / 2.1)), capR = 18 + 40 * (1 - Math.exp(-t / 2.4)), tube = capR * .5, cool = Math.min(1, t / 5);
     N.parts.forEach(p => {
-      let x, y, z, sc;
-      if (p.kind === 'cap'){ const b = p.b + t * .9, rr = capR + Math.cos(b) * tube * p.r; x = Math.cos(p.a) * rr; z = Math.sin(p.a) * rr; y = H + Math.sin(b) * tube * .65 * p.r; sc = tube * 1.5; }
+      let x, y, z, sc, up = p.kind === 'skirt' ? -.3 : 0;
+      if (p.kind === 'cap'){ const b = p.b + t * .9; up = Math.sin(b) * p.r; const rr = capR + Math.cos(b) * tube * p.r; x = Math.cos(p.a) * rr; z = Math.sin(p.a) * rr; y = H + Math.sin(b) * tube * .65 * p.r; sc = tube * 1.5; }
       else if (p.kind === 'stem'){ const f = p.f, rr = 5 + 5 * f + Math.sin(t * 2 + p.a) * 1.2; x = Math.cos(p.a + t * .4) * rr; z = Math.sin(p.a + t * .4) * rr; y = f * H * .92; sc = 11 + 7 * f; }
       else { const rr = (20 + 90 * (1 - Math.exp(-t / 2.6))) * p.r; x = Math.cos(p.a) * rr; z = Math.sin(p.a) * rr; y = 3 + 6 * p.r * Math.min(1, t); sc = 16 + 14 * p.r; }
       p.s.position.set(P.x + x, P.y + y, P.z + z); p.s.scale.setScalar(sc * Math.min(1, t * 1.6 + .2));
       const glow = p.kind === 'skirt' ? .2 : p.kind === 'stem' ? Math.max(0, 1 - p.f) * .9 : .55;
-      p.s.material.color.copy(cHot).lerp(cCool, cool).lerp(cGlow, glow * (1 - cool * .55));
+      // humo oscuro, cara superior bañada por el sol bajo y la panza incandescente por el fuego
+      p.s.material.color.copy(cSmoke).lerp(cLit, Math.max(0, up * .6 + .45) * (1 - cool * .3)).lerp(cGlow, glow * (1 - cool * .55)).multiplyScalar(.7 + .6 * p.j + glow * (1 - cool) * (1.3 - up * .6) * 3.2);
       p.s.material.opacity = Math.min(.95, t * 2) * (p.kind === 'skirt' ? .7 : .92);
     });
     // corazón incandescente del hongo
     N.core.forEach(c => { c.s.position.set(P.x + Math.cos(c.a + t) * capR * .5 * c.r, P.y + H + Math.sin(t * 2 + c.a) * 4, P.z + Math.sin(c.a + t) * capR * .5 * c.r); c.s.scale.setScalar(tube * 2.4); c.s.material.opacity = Math.max(0, .9 - t * .16); });
     // bola de fuego que sube y se apaga, cúpula de condensación
     const bk = Math.min(1, t / .7); N.ball.scale.setScalar(4 + 30 * (1 - Math.pow(1 - bk, 3))); N.ball.position.set(P.x, P.y + H * .8 * Math.min(1, t / 1.2), P.z); N.ball.material.opacity = Math.max(0, 1 - t / 2.2);
-    N.ball.material.color.setRGB(1, Math.max(.4, .95 - t * .25), Math.max(.1, .8 - t * .4));
+    { const hk = 1 + 5 * Math.max(0, 1 - t / 1.8); N.ball.material.color.setRGB(hk, Math.max(.4, .95 - t * .25) * hk, Math.max(.1, .8 - t * .4) * hk); }
     N.dome.scale.setScalar(20 + 520 * Math.min(1, t / 1.6)); N.dome.material.opacity = t < .25 ? t * 2 : Math.max(0, .5 - (t - .25) * .45);
     // la onda tumba y quema los árboles a su paso
     const Rw = 420 * t, d = nO;
@@ -491,15 +485,24 @@ export async function playFurious(X){
       nq2.setFromAxisAngle(nUp, r.r0); d.quaternion.copy(nq).multiply(nq2); d.scale.set(r.sx, r.sy, r.sz); d.updateMatrix(); r.im.setMatrixAt(r.i, d.matrix); r.im.instanceMatrix.needsUpdate = true;
       if (r.im.instanceColor){ r.im.setColorAt(r.i, tmp2.setRGB(.09, .07, .06)); r.im.instanceColor.needsUpdate = true; } }
   }
+  // onda de choque como distorsión de pantalla (postprocesado) sobre el compositor del motor
+  let shock = null;
+  function shockwave(P){
+    try {
+      if (!ctx.composer || !T.PP.ShockWaveEffect) return;
+      if (!shock){ shock = new T.PP.ShockWaveEffect(cam, P.clone(), { speed: 1.2, maxRadius: .9, waveSize: .22, amplitude: alv && alv.nuke ? .05 : .035 }); ctx.composer.addPass(new T.PP.EffectPass(cam, shock)); }
+      shock.position.copy(P); shock.explode();
+    } catch (e) { /* sin onda de choque */ }
+  }
   function alvBoom(P){
-    alv.boom = P.clone(); impact();
+    alv.boom = P.clone(); impact(); shockwave(P);
     if (alv.nuke) nukeBoom(P);
     if (S){ S.boom(true); later(() => S && S.boom(true), 140); later(() => S && S.boom(false), 420); }
     if (snd){ const v0 = snd.volume, t0 = performance.now(); const iv = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / 400); snd.volume = v0 * (1 - k); if (k >= 1){ clearInterval(iv); snd.pause(); } }, 30); }
     burst(P, true);
-    boomLight.position.copy(P).add(tmp.set(0, 3, 0)); boomLight.intensity = 9;
+    boomLight.position.copy(P).add(tmp.set(0, 3, 0)); boomI = 1400; boomDur = 1.8; boomLight.intensity = boomI;
     ring.position.copy(P).add(tmp.set(0, .25, 0)); ring.material.opacity = 1; ring.scale.setScalar(1);
-    if (alv.nuke){ boomLight.intensity = 40; boomLight.distance = 900; }
+    if (alv.nuke){ boomI = 420000; boomDur = 8; boomLight.intensity = boomI; boomLight.distance = 1100; }
     // ya no hay equipo: todos los coches salen volando, con fuego
     cars.forEach((c, i) => {
       const d = c.g.position.clone().sub(P); d.y = 0; const r = Math.max(2, d.length()); d.normalize();
@@ -598,6 +601,7 @@ export async function playFurious(X){
       c.g.position.set(s.x, s.y, s.z);
       c.g.rotation.y = Math.atan2(-(s2.x - s.x), -(s2.z - s.z));
       c.g.position.y += Math.sin(et * 7 + c.k * 2) * .015;
+      c.wheels.forEach(w => { w.rotation.x -= dt * 34; });
       const lit = c.tA < 0 ? 1 : Math.min(1, Math.max(0, (et - c.tA - .4) / .7));
       if (c.tA >= 0) c.paint.color.setHex(0x9a9ca4).lerp(new T.Color(PAINT[c.ti % 4]), lit);
       c.glowM.opacity = .5 * lit;
@@ -605,7 +609,7 @@ export async function playFurious(X){
       const eggShot = kind === 'freeze' || kind === 'matiRide' || kind === 'together';
       c.face.material.opacity = inside || eggShot ? 0 : Math.min(1, et / 1.5) * (kind === 'sunset' || kind === 'wide' ? .0 : 1);
       const open = c === oc || (eggShot && c.captain);
-      c.cab.visible = c !== inside && !open; c.driver.visible = c !== inside;
+      c.cab.visible = c.roof.visible = c !== inside && !open; c.driver.visible = c !== inside;
       const ds = c === oc ? (inside ? 1.1 : 1.05) : open ? 1 : .82; c.driver.scale.set(ds, ds * 300 / 256, 1);
       if (c.pass){ c.pass.visible = c !== inside; const ps = open ? ds * .92 : .78; c.pass.scale.set(ps, ps * 300 / 256, 1); }
       if (c.pb){ c.pb.visible = c.face.visible; c.pb.material.opacity = c.face.material.opacity; }
@@ -619,7 +623,7 @@ export async function playFurious(X){
     if (egg){
       B = bikeState(); bike.visible = true;
       bike.position.set(B.x, B.y + Math.sin(rt * 9) * .012, B.z); bike.rotation.y = Math.atan2(-(B.x2 - B.x), 1); bike.rotation.z = (B.x2 - B.x) * .6;
-      bWheels.forEach(w => { w.rotation.x += rdt * 38; });
+      bWheels.forEach(w => { w.rotation.x -= rdt * 38; });
       const sk = standAt < 0 ? 0 : Math.min(1, (rt - standAt) / .45), pop = sk < 1 ? .35 + .7 * ease(sk) : 1;
       stand.material.opacity = .88 * sk * (.9 + .1 * Math.sin(rt * 6)); stand.scale.set(2.95 * pop, 6.55 * pop, 1);
       aura.material.opacity = .55 * sk * (.75 + .25 * Math.sin(rt * 4.3)); aura.scale.set(7.5 * pop, 9.5 * pop * (1 + .04 * Math.sin(rt * 7)), 1);
@@ -635,7 +639,7 @@ export async function playFurious(X){
         A3 = { x, y: ry(z), z };
         abike.visible = true; abike.position.set(x, A3.y, z);
         abike.rotation.set(0, Math.atan2(-Math.cos(a * 9) * 1.1 * wob * .4, 1), Math.sin(a * 9) * .5 * wob);
-        aWheels.forEach(w => { w.rotation.x += rdt * 40; });
+        aWheels.forEach(w => { w.rotation.x -= rdt * 40; });
         if (et >= alv.boomAt) alvBoom(new T.Vector3(x, A3.y, z));
       }
     }
@@ -649,7 +653,7 @@ export async function playFurious(X){
       p.s.scale.setScalar(1 + p.grow * Math.pow(k, p.kind === 'fire' ? .45 : .7));
       p.s.material.opacity = p.kind === 'fire' ? Math.pow(1 - k, 1.6) : Math.min(1, k * 4) * (1 - k) * .9;
     }
-    if (boomLight.intensity > 0) boomLight.intensity = Math.max(0, boomLight.intensity - rdt * 5);
+    if (boomLight.intensity > 0) boomLight.intensity = Math.max(0, boomLight.intensity - rdt * boomI / boomDur);
     if (ring.material.opacity > 0){ ring.material.opacity = Math.max(0, ring.material.opacity - rdt * 1.1); ring.scale.setScalar(ring.scale.x + rdt * (alv && alv.nuke ? 840 : 90)); }
     if (NK) nukeTick(rdt);
     if (alv && alv.boom && alv.tEnd && !alv.ended && st >= alv.boomAt + alv.tEnd){ alv.ended = true; alvEnd.classList.add('on');
@@ -708,7 +712,9 @@ export async function playFurious(X){
         b.scale.set(5, 2.5 * (.55 + .45 * fl), 1); b.material.opacity += (on * .85 - b.material.opacity) * Math.min(1, rdt * 1.5); }); }
     ov.dataset.mood = kind;
     // sombras siguen al convoy
-    sunL.target.position.copy(L); sunL.position.copy(L).addScaledVector(sunDir, 700); sunL.target.updateMatrixWorld();
+    uTime.value = rt;
+    sunL.target.position.copy(L); sunL.position.copy(L).addScaledVector(lightDir, 700); sunL.target.updateMatrixWorld();
+    sky.position.copy(cam.position); sunMesh.position.copy(cam.position).addScaledVector(sunDir, 3300);
     // nombres de equipo sobre sus carreteras
     const tagOn = (kind === 'forkTop' && u > 2.4) || (kind === 'wide' && u < 5.6);
     const zt = win ? L.z - 50 : (kind === 'forkTop' ? zF - 110 : kind === 'wide' ? L.z - 60 : zF - 420);
@@ -721,12 +727,12 @@ export async function playFurious(X){
     if (tagTP) tagAt(tagTP, zt > zF ? xm(zt) : xb(0, zt), tagOn && saved);
     // sol y destellos (crecen en el atardecer hasta quemar la imagen)
     const sunK = kind === 'sunset' ? Math.min(1, u / 8) : kind === 'wide' ? .2 : 0;
-    sky.material.uniforms.glow.value = 1 + sunK * .7;
-    sunGlow.material.opacity = .38 + .4 * sunK; sunGlow.scale.setScalar(520 + 700 * sunK * sunK);
+    setGlow(1 + sunK * .7);
+    sunGlow.position.copy(cam.position).addScaledVector(sunDir, 3000); sunGlow.material.opacity = .18 + .3 * sunK; sunGlow.scale.setScalar(520 + 700 * sunK * sunK); sunMesh.material.color.setRGB(3.2 + 5 * sunK, 2.6 + 4 * sunK, 1.8 + 2.6 * sunK);
     const ndc = tmp.copy(sunGlow.position).project(cam), hh = Math.tan(T.MathUtils.degToRad(cam.fov / 2)) * 40, hw = hh * cam.aspect, onS = ndc.z < 1 && Math.abs(ndc.x) < 1.3 && Math.abs(ndc.y) < 1.3 ? 1 : 0;
     ghosts.forEach(g => { const f = g.userData.f; g.position.set(ndc.x * hw * (1 - 2 * f), ndc.y * hh * (1 - 2 * f), -40); g.scale.setScalar(g.userData.s * .2); g.material.opacity = onS * (.12 + .3 * sunK); });
     scene.fog.near = 260 - 160 * sunK; scene.fog.color.setHex(0xe0a070).lerp(fogWhite, sunK * .6);
-    if (NK){ const h = Math.min(1, NK.t / 1.5); scene.fog.color.lerp(tmp2.setRGB(.62, .26, .1), h); scene.fog.near = 60; sky.material.uniforms.glow.value = 1 + 2.5 * Math.max(0, 1 - NK.t / 3); }
+    if (NK){ const h = Math.min(1, NK.t / 1.5); scene.fog.color.lerp(tmp2.setRGB(.62, .26, .1), h); scene.fog.near = 60; setGlow(1 + 2.5 * Math.max(0, 1 - NK.t / 3)); }
     // rótulos
     capT.style.opacity = !egg && !alv && et > .8 && et < 4.8 ? Math.min(1, (et - .8) * 1.2, (4.8 - et) * 1.2) : 0;
     const midKey = alv ? 'alv' : inside ? kind : ['cry', 'freeze', 'matiRide', 'together'].includes(kind) ? kind + (saved ? '+' : '') : '';

@@ -11,9 +11,12 @@ function displace(T, g, amp, freq, seed = 1) {
     const k = 1 + amp * (n.noise3d(v.x * freq, v.y * freq, v.z * freq) + .5 * n.noise3d(v.x * freq * 2.3, v.y * freq * 2.3, v.z * freq * 2.3));
     v.multiplyScalar(k); p.setXYZ(i, v.x, v.y, v.z);
   }
-  g.computeVertexNormals(); return g;
+  return smooth(T, g);
 }
-const merge = (T, gs) => { const m = T.mergeGeometries(gs.map(g => g.index ? g.toNonIndexed() : g), false); m.computeVertexNormals(); return m; };
+// une geometrías indexadas conservando sus normales suaves
+const merge = (T, gs) => T.mergeGeometries(gs, false);
+// geometría suave: suelda vértices (sin uv) y recalcula normales promediadas
+const smooth = (T, g, tol = 1e-4) => { g.deleteAttribute('uv'); g.deleteAttribute('normal'); const m = T.mergeVertices(g, tol); m.computeVertexNormals(); return m; };
 
 // ---------- coche ----------
 // perfil lateral (z del coche hacia delante = -z, y arriba). Se extruye a lo ancho.
@@ -23,26 +26,29 @@ function sideShape(T, pts, arches) {
   // fondo con los pasos de rueda (arcos)
   const bot = .24, back = pts[pts.length - 1][0], front = pts[0][0];
   s.lineTo(-back, bot);
-  arches.slice().sort((a, b) => b - a).forEach(z => { const r = .54; s.lineTo(-(z + r), bot); s.absarc(-z, .43, r, 0, Math.PI, false); s.lineTo(-(z - r), bot); });
+  arches.slice().sort((a, b) => b - a).forEach(z => { const r = .49; s.lineTo(-(z + r), bot); s.absarc(-z, .41, r, Math.PI, 0, true); s.lineTo(-(z - r), bot); });
   s.lineTo(-front, bot); s.closePath(); return s;
 }
 export function carKit(T) {
   const W = 1.94, bev = .09;
   // carrocería: morro bajo, capó largo, cintura musculosa y maletero corto
-  const body = [[-2.3, .34], [-2.34, .5], [-2.26, .66], [-1.9, .76], [-1.1, .86], [-.82, .92], [.9, .95], [1.6, .97], [2.12, 1.0], [2.3, .92], [2.34, .7], [2.3, .4]];
+  const body = [[-2.3, .34], [-2.34, .58], [-2.26, .8], [-1.9, .96], [-1.1, 1.06], [-.82, 1.1], [.9, 1.12], [1.6, 1.14], [2.12, 1.16], [2.3, 1.06], [2.34, .78], [2.3, .4]];
   const bodyG = new T.ExtrudeGeometry(sideShape(T, body, [-1.48, 1.48]), { depth: W - bev * 2, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 4, curveSegments: 18, steps: 1 });
-  bodyG.rotateY(Math.PI / 2); bodyG.translate(-(W - bev * 2) / 2, 0, 0); bodyG.computeVertexNormals();
+  bodyG.rotateY(Math.PI / 2); bodyG.translate(-(W - bev * 2) / 2, 0, 0);
   // ligero estrechamiento arriba (tumblehome)
-  { const p = bodyG.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i); if (y > .7) p.setX(i, p.getX(i) * (1 - (y - .7) * .16)); } bodyG.computeVertexNormals(); }
+  { const p = bodyG.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i); if (y > .7) p.setX(i, p.getX(i) * (1 - (y - .7) * .16)); } }
+  const bodyS = smooth(T, bodyG);
   // habitáculo: parabrisas inclinado, techo bajo, luneta tipo fastback
-  const cabS = new T.Shape(); [[-.86, .9], [-.18, 1.4], [.62, 1.42], [1.62, .98]].forEach(([z, y], i) => i ? cabS.lineTo(-z, y) : cabS.moveTo(-z, y)); cabS.closePath();
+  const cabS = new T.Shape(); [[-.86, 1.1], [-.18, 1.56], [.62, 1.58], [1.62, 1.16]].forEach(([z, y], i) => i ? cabS.lineTo(-z, y) : cabS.moveTo(-z, y)); cabS.closePath();
   const cabW = 1.5, cb = .1;
   const cabG = new T.ExtrudeGeometry(cabS, { depth: cabW - cb * 2, bevelEnabled: true, bevelThickness: cb, bevelSize: cb, bevelSegments: 4, curveSegments: 8 });
   cabG.rotateY(Math.PI / 2); cabG.translate(-(cabW - cb * 2) / 2, 0, 0);
-  { const p = cabG.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setX(i, p.getX(i) * (1 - Math.max(0, y - .95) * .22)); } cabG.computeVertexNormals(); }
+  { const p = cabG.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setX(i, p.getX(i) * (1 - Math.max(0, y - 1.05) * .22)); } }
+  const cabS2 = smooth(T, cabG);
   // techo pintado encima del cristal
-  const roofG = new T.ExtrudeGeometry((() => { const s = new T.Shape(); [[-.2, 1.39], [.6, 1.41], [.58, 1.455], [-.16, 1.44]].forEach(([z, y], i) => i ? s.lineTo(-z, y) : s.moveTo(-z, y)); s.closePath(); return s; })(), { depth: 1.18, bevelEnabled: true, bevelThickness: .06, bevelSize: .04, bevelSegments: 3 });
-  roofG.rotateY(Math.PI / 2); roofG.translate(-.59, 0, 0); roofG.computeVertexNormals();
+  const roofG = new T.ExtrudeGeometry((() => { const s = new T.Shape(); [[-.2, 1.54], [.6, 1.56], [.58, 1.61], [-.16, 1.59]].forEach(([z, y], i) => i ? s.lineTo(-z, y) : s.moveTo(-z, y)); s.closePath(); return s; })(), { depth: 1.18, bevelEnabled: true, bevelThickness: .06, bevelSize: .04, bevelSegments: 3 });
+  roofG.rotateY(Math.PI / 2); roofG.translate(-.59, 0, 0);
+  const roofS = smooth(T, roofG);
   // rueda: neumático con perfil redondeado (lathe) + llanta de 5 radios + disco y pinza
   const tp = []; const R = .43, w = .3, rr = .07;
   for (let i = 0; i <= 8; i++) { const a = -Math.PI / 2 + i / 8 * Math.PI / 2; tp.push(new T.Vector2(R - rr + Math.cos(a) * rr, -w / 2 + rr + Math.sin(a) * rr)); }
@@ -73,7 +79,7 @@ export function carKit(T) {
     trim: new T.MeshStandardMaterial({ color: 0x0b0b0c, metalness: .4, roughness: .5 }),
     chrome: new T.MeshStandardMaterial({ color: 0xe8e8e8, metalness: 1, roughness: .12 }),
   };
-  return { bodyG, cabG, roofG, tyreG, rimG, discG, caliperG, headG, tailG, grilleG, mirrorG, exhG, wingG, strutG, splitG, sillG, mats };
+  return { bodyG: bodyS, cabG: cabS2, roofG: roofS, tyreG, rimG, discG, caliperG, headG, tailG, grilleG, mirrorG, exhG, wingG, strutG, splitG, sillG, mats };
 }
 export const carPaint = (T, color) => new T.MeshPhysicalMaterial({ color, metalness: .55, roughness: .3, clearcoat: 1, clearcoatRoughness: .05, envMapIntensity: 1.25 });
 
@@ -82,11 +88,11 @@ export function buildCar(T, K, paint) {
   const body = add(K.bodyG, paint, 0, 0, 0);
   const cab = add(K.cabG, M.glass, 0, 0, 0); cab.castShadow = true; cab.renderOrder = 2;
   const roof = add(K.roofG, paint, 0, 0, 0);
-  add(K.grilleG, M.trim, 0, .5, -2.33, false);
-  add(K.splitG, M.trim, 0, .3, -2.28);
-  [-1, 1].forEach(s => { add(K.mirrorG, paint, s * .86, 1.02, -.62); add(K.sillG, M.trim, s * .99, .3, 0, false); add(K.exhG, M.chrome, s * .42, .33, 2.34, false); add(K.headG, M.head, s * .62, .67, -2.31, false); });
-  add(K.tailG, M.tail, 0, .8, 2.33, false);
-  add(K.wingG, paint, 0, 1.2, 2.08); [-.6, .6].forEach(x => add(K.strutG, M.trim, x, 1.1, 2.08));
+  add(K.grilleG, M.trim, 0, .56, -2.33, false);
+  add(K.splitG, M.trim, 0, .32, -2.26);
+  [-1, 1].forEach(s => { add(K.mirrorG, paint, s * .86, 1.2, -.6); add(K.sillG, M.trim, s * .99, .3, 0, false); add(K.exhG, M.chrome, s * .42, .36, 2.36, false); add(K.headG, M.head, s * .66, .8, -2.3, false); });
+  add(K.tailG, M.tail, 0, .98, 2.31, false);
+  add(K.wingG, paint, 0, 1.46, 2.0); [-.6, .6].forEach(x => add(K.strutG, M.trim, x, 1.3, 2.0));
   const wheels = [[-1, 1.48], [1, 1.48], [-1, -1.48], [1, -1.48]].map(([s, z]) => {
     const wg = new T.Group(); wg.position.set(s * .92, .43, z); wg.scale.x = s; g.add(wg);
     const spin = new T.Group(); wg.add(spin);
@@ -132,22 +138,23 @@ export function buildBike(T, part, mats) {
 }
 
 // ---------- vegetación ----------
-export function treeGeos(T) {
-  const blob = displace(T, new T.IcosahedronGeometry(1, 3), .22, 1.4, 3);
+export function treeGeos(T, mob) {
+  const blob = displace(T, new T.IcosahedronGeometry(1, mob ? 2 : 3), .22, 1.4, 3);
   const cone = (() => { const g = new T.ConeGeometry(1, 1, 16, 8); g.translate(0, .5, 0); const p = g.attributes.position, n = new T.SimplexNoise();
     for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = 1 + .18 * n.noise3d(x * 3, y * 6, z * 3); p.setXYZ(i, x * k, y, z * k); } g.computeVertexNormals(); return g; })();
   const trunk = (() => { const g = new T.CylinderGeometry(.14, .3, 1, 8, 4); g.translate(0, .5, 0); const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setX(i, p.getX(i) + Math.sin(y * 3.1) * .06); } g.computeVertexNormals(); return g; })();
-  const bush = displace(T, new T.IcosahedronGeometry(1, 2), .3, 1.8, 7);
+  const bush = displace(T, new T.IcosahedronGeometry(1, mob ? 1 : 2), .3, 1.8, 7);
   return { blob, cone, trunk, bush };
 }
 // balanceo con el viento (vertex shader de las copas instanciadas)
-export function windify(mat, uTime, amp = .12) {
+export function windify(mat, uTime, amp = .12, y0 = 1) {
+  mat.customProgramCacheKey = () => 'wind' + amp + y0;
   mat.onBeforeCompile = sh => {
     sh.uniforms.uTime = uTime;
     sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       #ifdef USE_INSTANCING
-        vec3 ip = instanceMatrix[3].xyz; float h = max(0., position.y + 1.);
+        vec3 ip = instanceMatrix[3].xyz; float h = max(0., position.y + ${y0.toFixed(1)});
         float w = sin(uTime * 1.3 + ip.x * .05 + ip.z * .04) + .4 * sin(uTime * 2.7 + ip.z * .11);
         transformed.x += w * ${amp.toFixed(3)} * h; transformed.z += w * ${(amp * .6).toFixed(3)} * h;
       #endif`);
