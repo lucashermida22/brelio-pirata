@@ -37,7 +37,7 @@ export async function playFurious(X){
   sunMesh.scale.setScalar(95); sunMesh.frustumCulled = false;
   const ctx = await X.three({ clear: 0xe9b07a, fov: 38, near: .3, far: 4000, env: false, tone: 'aces_filmic',
     bloom: { intensity: .5, threshold: 1.3, radius: .8, smoothing: .4 },
-    ao: { radius: .9, intensity: 1.4, falloff: .6, color: 0x1c0d06 },
+    ao: false,   // sin oclusión ambiental: dejaba halos oscuros (sombras dobles) y es lo más caro
     godrays: { sun: sunMesh, o: { density: .92, decay: .94, weight: .3, exposure: .3, samples: Math.min(innerWidth, innerHeight) < 560 ? 24 : 40 } },
     vignette: { offset: .3, darkness: .42 }, ca: .0005, grain: .035 });
   if (!ctx) return;
@@ -292,13 +292,13 @@ export async function playFurious(X){
     const under = new T.Mesh(new T.PlaneGeometry(2.7, 5.4), glowM); under.rotation.x = -Math.PI / 2; under.position.y = .06; g.add(under);
     const isCap = k === caps[ti], faceT = tex(faceCanvas(m.name, isCap ? '#ffcc33' : t.bar, imgs[ii++], isCap ? '★ ' + m.name : m.name));
     const face = new T.Sprite(new T.SpriteMaterial({ map: faceT, transparent: true })); const fs0 = isCap ? 2.05 : 1.45; face.scale.set(fs0, fs0 * 300 / 256, 1); face.position.y = isCap ? 3.1 : 2.8; g.add(face);
-    const driver = new T.Sprite(new T.SpriteMaterial({ map: faceT, transparent: true })); driver.scale.set(.82, .82 * 300 / 256, 1); driver.position.set(-.4, 1.3, .2); driver.renderOrder = 3; g.add(driver);
+    const driver = new T.Sprite(new T.SpriteMaterial({ map: faceT, transparent: true, depthTest: false })); driver.scale.set(.82, .82 * 300 / 256, 1); driver.position.set(-.4, 1.3, .2); driver.renderOrder = 10; g.add(driver);
     // copiloto del capitán: Toretto, Paul o el personaje de su equipo
     let pass = null, pb = null, passName = '';
     if (isCap){
       const nm = (t.name || '').replace(/^Team\s+/i, ''); passName = FF_CHAR[nm] ? nm : 'Toretto'; if (win && passName === 'Paul') passName = 'Toretto';
       const pT = tex(ffCharCanvas(passName, t.bar));
-      pass = new T.Sprite(new T.SpriteMaterial({ map: pT, transparent: true })); pass.scale.set(.78, .78 * 300 / 256, 1); pass.position.set(.42, 1.24, 1.15); pass.renderOrder = 3; g.add(pass);
+      pass = new T.Sprite(new T.SpriteMaterial({ map: pT, transparent: true, depthTest: false })); pass.scale.set(.78, .78 * 300 / 256, 1); pass.position.set(.42, 1.24, 1.15); pass.renderOrder = 10; g.add(pass);
       pb = new T.Sprite(new T.SpriteMaterial({ map: pT, transparent: true })); pb.scale.set(1.3, 1.3 * 300 / 256, 1); pb.position.set(1.05, 2.95, 0); g.add(pb); face.position.x = -.7;
     }
     scene.add(g);
