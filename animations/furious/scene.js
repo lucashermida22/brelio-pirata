@@ -38,7 +38,7 @@ export async function playFurious(X){
   const ctx = await X.three({ clear: 0xe9b07a, fov: 38, near: .3, far: 4000, env: false, tone: 'aces_filmic',
     bloom: { intensity: .5, threshold: 1.3, radius: .8, smoothing: .4 },
     ao: { radius: 2.4, intensity: 2.6, falloff: 1.6, color: 0x1c0d06 },
-    godrays: { sun: sunMesh, o: { density: .92, decay: .94, weight: .3, exposure: .3 } },
+    godrays: { sun: sunMesh, o: { density: .92, decay: .94, weight: .3, exposure: .3, samples: Math.min(innerWidth, innerHeight) < 560 ? 24 : 40 } },
     vignette: { offset: .3, darkness: .42 }, ca: .0005, grain: .035 });
   if (!ctx) return;
   const { T, scene, cam, tex, renderer, q } = ctx, W = ctx.W, H = ctx.H, narrow = W / H < .8, mob = q.mob;
@@ -93,10 +93,10 @@ export async function playFurious(X){
   scene.fog = new T.Fog(0xe0a070, 260, 2200);
   // luz física: el sol rasante (algo más alto que el disco para que el relieve reciba luz), relleno cálido y contraluz frío
   const lightDir = new T.Vector3(-.3, .21, -1).normalize();
-  let shS = 0; const shF = new T.Vector3(), shR = new T.Vector3().crossVectors(new T.Vector3(0, 1, 0), lightDir).normalize(), shU = new T.Vector3().crossVectors(lightDir, shR).normalize();
+  const SHS = 34; const shF = new T.Vector3(), shR = new T.Vector3().crossVectors(new T.Vector3(0, 1, 0), lightDir).normalize(), shU = new T.Vector3().crossVectors(lightDir, shR).normalize();
   const hemiL = new T.HemisphereLight(0xffd0a0, 0x3a2a20, .75); scene.add(hemiL);
   const sunL = new T.DirectionalLight(0xffcc9a, 3.4);
-  ctx.sun(sunL, { size: 72, res: q.shadow, radius: 3.5, near: 20, far: 900, bias: -.0004, normalBias: .04 });
+  ctx.sun(sunL, { size: 34, res: 1024, radius: 3, near: 120, far: 300, bias: -.0005, normalBias: .03 });
   scene.add(sunL, sunL.target);
   const fillL = new T.DirectionalLight(0xa9b4d8, 1.2); fillL.position.set(.4, .5, 1); scene.add(fillL);
   const uTime = { value: 0 }; let liftK = 1;
@@ -140,7 +140,7 @@ export async function playFurious(X){
       d.position.set(x, Hgt(x, z) - s * .2 - .15, z); d.scale.set(s, s * (.42 + Math.random() * .25), s); d.rotation.set(0, Math.random() * 6, 0); d.updateMatrix(); bushes.setMatrixAt(nb, d.matrix);
       c.setHSL(.17 + Math.random() * .1, .38 + Math.random() * .2, .27 + Math.random() * .14, T.SRGBColorSpace); bushes.setColorAt(nb++, c);
     } bushes.count = nb; bushes.instanceColor.needsUpdate = true; }
-  bushes.castShadow = true; bushes.receiveShadow = true; scene.add(bushes);
+  bushes.castShadow = false; bushes.receiveShadow = false; scene.add(bushes);
 
   // árboles: pinos piñoneros, cipreses y encinas a lo largo de los caminos
   const TN2 = mob ? 900 : 2200, TB = TN2 * 2, treeRec = []; let curBase = null;
@@ -171,7 +171,15 @@ export async function playFurious(X){
       }
     }
     trunks.count = nt; blobs.count = nb; cones.count = nc;
-    [trunks, blobs, cones].forEach(m => { m.castShadow = true; m.receiveShadow = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; scene.add(m); }); }
+    { const sc = document.createElement('canvas'); sc.width = sc.height = 64; const sg = sc.getContext('2d'), gr = sg.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, 'rgba(20,10,4,.55)'); gr.addColorStop(.6, 'rgba(20,10,4,.25)'); gr.addColorStop(1, 'rgba(20,10,4,0)'); sg.fillStyle = gr; sg.fillRect(0, 0, 64, 64);
+      const bg = new T.PlaneGeometry(1, 1); bg.rotateX(-Math.PI / 2);
+      const blobSh = new T.InstancedMesh(bg, new T.MeshBasicMaterial({ map: tex(sc), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }), nt);
+      const m4 = new T.Matrix4(), pv = new T.Vector3(), sq = new T.Quaternion(), sv = new T.Vector3(), ld = new T.Vector2(-lightDir.x, -lightDir.z).normalize(), ang = Math.atan2(ld.x, ld.y);
+      for (let k = 0; k < nt; k++){ trunks.getMatrixAt(k, m4); m4.decompose(pv, sq, sv); const s = 3.2 * sv.x + 1.2;
+        d.position.set(pv.x + ld.x * s * .9, pv.y + .25, pv.z + ld.y * s * .9); d.rotation.set(0, ang, 0); d.scale.set(s, 1, s * 2.4); d.updateMatrix(); blobSh.setMatrixAt(k, d.matrix); }
+      blobSh.renderOrder = 1; scene.add(blobSh); }
+    [trunks, blobs, cones].forEach(m => { m.castShadow = false; m.receiveShadow = false; if (m.instanceColor) m.instanceColor.needsUpdate = true; scene.add(m); }); }
 
   // cordilleras lejanas en capas (bruma de atardecer)
   [[2050, 300, '#a8735a', .0014], [2600, 380, '#c48e6c', .001], [3150, 460, '#dca57e', .0007]].forEach(([dist, amp, c, f], j) => {
@@ -232,7 +240,7 @@ export async function playFurious(X){
     const pm = new T.InstancedMesh(new T.BoxGeometry(.13, 1.05, .13).translate(0, .52, 0), new T.MeshStandardMaterial({ color: 0xe9e4da, roughness: .7 }), posts.length);
     const rm = new T.InstancedMesh(new T.BoxGeometry(.15, .16, .15).translate(0, .88, 0), new T.MeshBasicMaterial({ color: new T.Color(0xff8a2a).multiplyScalar(2.6) }), posts.length);
     posts.forEach(([x, y, z], i) => { d.position.set(x, y, z); d.updateMatrix(); pm.setMatrixAt(i, d.matrix); rm.setMatrixAt(i, d.matrix); });
-    pm.castShadow = true; pm.receiveShadow = true; scene.add(pm, rm); }
+    pm.castShadow = false; pm.receiveShadow = true; scene.add(pm, rm); }
   // postes de teléfono con sus cables combados: el viaje de siempre
   { const pz = [], d = new T.Object3D(); for (let z = Z0 + 280; z > (win ? -1250 : -1500); z -= 42) pz.push(z);
     const cxP = z => win || z > zF ? xm(z) : xb(0, z), off = (z) => (z > zF || win ? mainW / 2 : 3.6) + 5.5;
@@ -240,7 +248,7 @@ export async function playFurious(X){
     const poles = new T.InstancedMesh(new T.CylinderGeometry(.14, .2, 9.5, 6).translate(0, 4.75, 0), poleM, pz.length), bars = new T.InstancedMesh(new T.BoxGeometry(2.6, .16, .16), poleM, pz.length);
     const tops = pz.map((z, i) => { const x = cxP(z) - off(z), y = Hgt(x, z) - .1; d.position.set(x, y, z); d.rotation.set(0, Math.atan2(cxP(z - 1) - cxP(z), 1), 0); d.updateMatrix(); poles.setMatrixAt(i, d.matrix);
       d.position.y = y + 8.9; d.updateMatrix(); bars.setMatrixAt(i, d.matrix); return [x, y + 8.9, z]; });
-    poles.castShadow = bars.castShadow = true; poles.receiveShadow = bars.receiveShadow = true; scene.add(poles, bars);
+    poles.castShadow = bars.castShadow = false; poles.receiveShadow = bars.receiveShadow = true; scene.add(poles, bars);
     const wp = []; for (let i = 0; i + 1 < tops.length; i++){ const [ax, ay, az] = tops[i], [bx, by, bz] = tops[i + 1];
       [-1.15, 0, 1.15].forEach(o => { let px = ax + o, py = ay + .06, pzz = az; for (let s = 1; s <= 10; s++){ const k = s / 10, sag = Math.sin(k * Math.PI) * 1.1;
         const qx = ax + (bx - ax) * k + o, qy = ay + (by - ay) * k + .06 - sag, qz = az + (bz - az) * k; wp.push(px, py, pzz, qx, qy, qz); px = qx; py = qy; pzz = qz; } }); }
@@ -263,8 +271,8 @@ export async function playFurious(X){
     const bt = tex(bc), steel = new T.MeshStandardMaterial({ color: 0x55504a, roughness: .5, metalness: .7 });
     // la valla se ilumina por dentro (emisiva) para que se lea a contraluz
     const panel = new T.Mesh(new T.BoxGeometry(12, 6, .3), [steel, steel, steel, steel, new T.MeshStandardMaterial({ map: bt, emissiveMap: bt, emissive: 0xffd6a8, emissiveIntensity: .55, roughness: .6 }), steel]);
-    panel.position.y = 7.5; panel.castShadow = true; panel.receiveShadow = true; board.add(panel);
-    const fr = new T.Mesh(new T.BoxGeometry(12.5, 6.5, .2), steel); fr.position.set(0, 7.5, -.12); fr.castShadow = true; board.add(fr);
+    panel.position.y = 7.5; panel.castShadow = false; panel.receiveShadow = true; board.add(panel);
+    const fr = new T.Mesh(new T.BoxGeometry(12.5, 6.5, .2), steel); fr.position.set(0, 7.5, -.12); fr.castShadow = false; board.add(fr);
     [-4, 4].forEach(x => { const p = new T.Mesh(new T.CylinderGeometry(.18, .2, 7.5, 10), steel); p.position.set(x, 3.75, -.3); p.castShadow = true; board.add(p);
       const lamp = new T.Mesh(new T.BoxGeometry(.9, .14, .3), new T.MeshBasicMaterial({ color: new T.Color(0xfff0cc).multiplyScalar(5) })); lamp.position.set(x * .9, 11, .4); board.add(lamp); });
   }
@@ -789,13 +797,11 @@ export async function playFurious(X){
     floorM.position.x = cam.position.x; floorM.position.z = cam.position.z;
     uTime.value = rt;
     { const lo = kind === 'wide' || kind === 'sunset' || kind === 'forkTop' || alv ? 0 : 1; liftK += (lo - liftK) * Math.min(1, rdt * 2.5); hemiL.intensity = .75 + .75 * liftK; fillL.intensity = 1.2 + 1.1 * liftK; scene.environmentIntensity = .1 + .22 * liftK; }
-    // sombras: caja ajustada al plano (nítida de cerca, amplia en los aéreos) y anclada a la rejilla de texels (sin temblor)
-    { const close = inside || ['cry', 'together', 'freeze', 'matiRide', 'alvRide'].includes(kind), far = ['wide', 'sunset', 'forkTop', 'alvBoom'].includes(kind);
-      const want = close ? 22 : far ? 170 : 60; if (Math.abs(shS - want) > .5){ shS = want; const sc = sunL.shadow.camera; sc.left = -shS; sc.right = shS; sc.top = shS; sc.bottom = -shS; sc.near = 20; sc.far = 900; sc.updateProjectionMatrix(); sunL.shadow.radius = close ? 4 : far ? 1.5 : 3; }
-      const F = (alv && A3) ? shF.set(A3.x, A3.y, A3.z) : (egg && B && (kind === 'matiRide' || kind === 'freeze')) ? shF.set(B.x, B.y, B.z) : shF.copy(L);
-      const tx = 2 * shS / sunL.shadow.mapSize.x, a1 = Math.round(F.dot(shR) / tx) * tx, a2 = Math.round(F.dot(shU) / tx) * tx, a3 = F.dot(lightDir);
+    // sombras (solo coches y motos): caja fija alrededor de lo que se mueve, anclada a texels para que no tiemble
+    { const F = (alv && A3) ? shF.set(A3.x, A3.y, A3.z) : (egg && B && (kind === 'matiRide' || kind === 'freeze')) ? shF.set(B.x, B.y, B.z) : shF.copy(L);
+      const tx = 2 * SHS / sunL.shadow.mapSize.x, a1 = Math.round(F.dot(shR) / tx) * tx, a2 = Math.round(F.dot(shU) / tx) * tx, a3 = F.dot(lightDir);
       F.copy(shR).multiplyScalar(a1).addScaledVector(shU, a2).addScaledVector(lightDir, a3);
-      sunL.target.position.copy(F); sunL.position.copy(F).addScaledVector(lightDir, 450); sunL.target.updateMatrixWorld(); }
+      sunL.target.position.copy(F); sunL.position.copy(F).addScaledVector(lightDir, 200); sunL.target.updateMatrixWorld(); }
     sky.position.copy(cam.position); sunMesh.position.copy(cam.position).addScaledVector(sunDir, 3300);
     // nombres de equipo sobre sus carreteras
     const tagOn = (kind === 'forkTop' && u > 2.4) || (kind === 'wide' && u < 5.6);
