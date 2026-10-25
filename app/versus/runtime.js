@@ -95,6 +95,7 @@ export async function play(teams, onDone, opts = {}) {
   const A = registry[id], win = !!opts.win;
   const key = A.key || id, variant = A.variant || '';
   const run = ++runId;
+  vs.onReady = null;
   vs.open = true; vs.pending = onDone; vs.anim = id; vs.hold = false; vs.keyBuf = ''; vs.done = false; vs.run = run;
 
   layer.className = ''; layer.dataset.anim = key; layer.dataset.variant = variant;
@@ -112,7 +113,16 @@ export async function play(teams, onDone, opts = {}) {
   if (win) layer.classList.add('win');
   if (A.gl) layer.classList.add('gl');
   const is3D = (A.gl || A.needsWebGL) && webglOK();
-  if (is3D) { layer.classList.add('loading'); vs.timers.push(setTimeout(() => layer.classList.remove('loading'), 6000)); }
+  // pantalla de carga de las 3D: el chico original girando; la música espera al primer fotograma
+  let ready = !is3D, startSong = null;
+  const goReady = () => { if (ready) return; ready = true; layer.classList.remove('loading'); vs.onReady = null; startSong && startSong(); };
+  if (is3D) {
+    let ld = $('#vsLoad');
+    if (!ld) { ld = document.createElement('div'); ld.id = 'vsLoad'; ld.innerHTML = '<img alt=""><b>Cargando Brelio Pirata<i>.</i><i>.</i><i>.</i></b>'; layer.appendChild(ld); }
+    ld.querySelector('img').src = urlOf('comun/hero.jpg');
+    layer.classList.add('loading'); vs.onReady = goReady;
+    vs.timers.push(setTimeout(goReady, 20000));   // red de seguridad
+  }
   document.body.classList.add('party-mode');
   if (is3D && A.warm) Promise.resolve(A.warm()).catch(() => {});   // escena + three en paralelo con la canción
 
@@ -131,7 +141,8 @@ export async function play(teams, onDone, opts = {}) {
     song.volume = 1; song.playbackRate = 1;
     try { song.currentTime = at; } catch (e) { /* aún sin metadatos */ }
     if (song.readyState < 1) song.addEventListener('loadedmetadata', () => { try { song.currentTime = at; } catch (e) { /* nada */ } }, { once: true });
-    song.play().catch(() => {});
+    startSong = () => { if (vs.open && vs.run === run) { try { song.currentTime = at; } catch (e) { /* nada */ } song.play().catch(() => {}); } };
+    if (ready) startSong();
   }
 
   if (!win && A.rename) A.rename(teams);
