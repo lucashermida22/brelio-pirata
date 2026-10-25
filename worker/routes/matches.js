@@ -29,6 +29,12 @@ export default [
     return json(parse(row), 201);
   }],
 
+  // reset de estadísticas: borra todo el historial
+  ['DELETE', /^\/api\/matches$/, async ({ env }) => {
+    const r = await env.DB.prepare('DELETE FROM matches').run();
+    return json({ deleted: r.meta?.changes ?? 0 });
+  }],
+
   ['PATCH', /^\/api\/matches\/([^/]+)$/, async ({ request, env, params: [id] }) => {
     const body = await readJson(request);
     if (!Object.prototype.hasOwnProperty.call(body, 'winner')) throw new HttpError(400, 'Falta winner (entero o null)');

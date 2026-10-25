@@ -153,3 +153,4 @@
 @media (max-width:520px){ .st-row .st-meta{display:none} .st-bar{width:48px} .st-row{gap:7px} .sec-head{flex-direction:column;gap:2px} }
 .st-btn{margin-top:8px;display:flex;justify-content:center;text-decoration:none}
 @media (max-width:440px){#demo{display:none}}
+.st-reset{margin-top:8px;color:#b42318;border-color:#fecdca;background:#fff5f4}.st-reset:hover{background:#fee4e2}

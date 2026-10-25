@@ -1,6 +1,6 @@
 // «Lerelio Estadísticas»: winrates, mejores y peores parejas, némesis… a partir del historial de partidos.
 // Solo cuentan los partidos con ganador marcado (el botón 🏆 de cada equipo).
-import { $, esc } from './util.js';
+import { $, esc, toast } from './util.js';
 import { avatarHTML } from './photos.js';
 import { animLabel } from './versus/runtime.js';
 import * as api from './api.js';
@@ -47,7 +47,13 @@ export function computeStats(matches) {
 const duo = (s) => `<div class="st-duo">${avatarHTML(s.a)}${avatarHTML(s.b)}</div><span class="nm st-two">${esc(s.a)}<br>${esc(s.b)}</span>`;
 const bar = (wr) => `<span class="st-bar"><i style="width:${wr}%"></i></span><b class="st-wr">${wr}%</b>`;
 
+let resetWired = false;
 export async function showStats() {
+  if (!resetWired) { resetWired = true; $('#stReset').addEventListener('click', async () => {
+    if (!confirm('¿Borrar todo el historial de partidos? Las estadísticas empezarán de cero para todo el grupo.')) return;
+    try { await api.resetMatches(); toast('Estadísticas reseteadas'); } catch (e) { toast('No se pudieron resetear'); }
+    showStats();
+  }); }
   const box = $('#statsBody');
   box.innerHTML = '<div class="placeholder"><b>Calculando…</b>Revisando el historial clínico de la pachanga.</div>';
   const S = computeStats(await api.listMatches().catch(() => []));

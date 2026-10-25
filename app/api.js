@@ -285,6 +285,12 @@ export async function listMatches() {
   return ls.json(LS_MATCHES, []);
 }
 
+// reset de estadísticas (borra el historial de partidos)
+export async function resetMatches() {
+  if (backend.mode === 'remote') return req('/api/matches', { method: 'DELETE' });
+  ls.setJson(LS_MATCHES, []); return { deleted: true };
+}
+
 export async function setWinner(id, winner) {
   if (!id) return null;
   if (backend.mode === 'remote') { try { return await req('/api/matches/' + encodeURIComponent(id), { method: 'PATCH', json: { winner } }); } catch (e) { return null; } }

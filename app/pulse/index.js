@@ -29,6 +29,7 @@ export function pulse(x, y, { source = null } = {}) {
   const g = engine.addWave({ x, y, palette: palettes.current(), reduced });
   if (!g) return false;
   lastT0 = now;
+  applyTheme(palettes.current());   // el tema de la app toma el color de la onda
   if (!reduced && engine.cfg.tremble) {
     // con varias ondas encima, cada temblor nuevo suma menos (nunca se desmadra)
     const damp = 1 / (1 + 0.45 * (engine.liveCount() - 1));
@@ -36,6 +37,19 @@ export function pulse(x, y, { source = null } = {}) {
     tremble(x, y, g, { source, damp });
   }
   return true;
+}
+
+// Tema: el color más vivo de la onda pasa a ser el acento de Lerelio (botones, etiquetas, foco) y se queda
+function applyTheme(pal) {
+  const hex = (pal && pal.hex) || []; if (!hex.length) return;
+  const sat = (h) => { const n = parseInt(h.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+    return (mx - mn) * (1 - Math.abs(2 * l - 1) * .7) * (l > .18 && l < .82 ? 1 : .3); };
+  const pick = hex.slice().sort((a, b) => sat(b) - sat(a))[0];
+  const R = document.documentElement.style;
+  R.setProperty('--accent', `color-mix(in oklab, ${pick} 85%, #000)`);
+  R.setProperty('--focus', pick);
+  R.setProperty('--accent-soft', `color-mix(in oklab, ${pick} 12%, #fff)`);
+  try { localStorage.setItem('lerelio-theme', pick); } catch (e) { /* nada */ }
 }
 
 // Un solo oyente para todos los botones muertos
@@ -66,6 +80,7 @@ const idle = (f, timeout) => (window.requestIdleCallback ? requestIdleCallback(f
 
 export function initPulse() {
   Object.assign(engine.cfg, window.__lerelioPulseConfig || {});
+  try { const t = localStorage.getItem('lerelio-theme'); if (t) applyTheme({ hex: [t] }); } catch (e) { /* nada */ }
   document.addEventListener('click', onClick);
   document.addEventListener('keydown', onKey);
   palettes.init();
