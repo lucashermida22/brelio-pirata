@@ -8,10 +8,11 @@ import * as api from './api.js';
 
 const VIDEO = 'despedida/video.mp4';   // videoclip recortado desde el 3:42 («si tú te vas…»), ~31 s
 const SLIDE = 4;          // segundos por recuerdo
-const T0 = 2.2;           // primer recuerdo
+const T0 = 3.2;           // primer recuerdo (tras el título)
 
-const face = (name, cls = '') => { const src = photoFor(name);
-  return `<div class="bye-face ${cls}">${src ? `<img src="${esc(src)}" alt="" decoding="async">` : `<span>${emojiFor(name)}</span>`}</div>`; };
+const TEARS = '<i class="tear a"></i><i class="tear b"></i><i class="tear c"></i><i class="tear d"></i>';
+const face = (name, cls = '', cry = false) => { const src = photoFor(name);
+  return `<div class="bye-face ${cls}${cry ? ' cry' : ''}">${src ? `<img src="${esc(src)}" alt="" decoding="async">` : `<span>${emojiFor(name)}</span>`}${cry ? TEARS : ''}</div>`; };
 
 // partidos y victorias que han compartido equipo con quien se va
 async function memories(me) {
@@ -37,13 +38,16 @@ const LINES = [
 ];
 
 export async function playDespedida(me) {
-  const others = shuffle(state.players.map((p) => p.name).filter((x) => x !== me)).slice(0, 6);
+  const all = shuffle(state.players.map((p) => p.name).filter((x) => x !== me)), others = all.slice(0, 6);
   const stats = await memories(me);
   const L = document.createElement('div'); L.className = 'bye'; L.innerHTML = `
     <video class="bye-vid" playsinline preload="auto"></video><div class="bye-bg"></div><div class="bye-bars"></div><div class="bye-slides"></div>
+    <div class="bye-grain"></div><div class="bye-leak"></div>
+    <div class="bye-title"><small>Lerelio presenta</small><b>${esc(me)} se quiere ir</b></div>
     <div class="bye-me">${face(me, 'big')}<b>${esc(me)}</b></div>
     <div class="bye-sub"></div>
-    <div class="bye-end"><h2>¿Una partidita más?</h2><p>Todos te estamos esperando, ${esc(me)}</p>
+    <div class="bye-end"><div class="bye-all">${all.map((f, i) => `<div class="bye-pal" style="--i:${i};--n:${all.length}">${face(f, '', true)}<span>${esc(f)}</span></div>`).join('')}</div>
+      <h2>¿Una partidita más?</h2><p>Todos te estamos esperando, ${esc(me)}</p>
       <div class="bye-btns"><button class="bye-stay">Me quedo 💙</button><button class="bye-go">Me voy…</button></div></div>
     <button class="bye-skip">Saltar ⟶</button>`;
   document.body.appendChild(L);
@@ -59,7 +63,7 @@ export async function playDespedida(me) {
   const end = () => { timers.forEach(clearTimeout); L.classList.add('final'); say(''); };
   const onKey = (e) => { if (e.key === 'Escape') close(); };
   addEventListener('keydown', onKey);
-  L.querySelector('.bye-stay').onclick = () => close(`¡Eso es, ${me}! Una más 💙`);
+  L.querySelector('.bye-stay').onclick = () => { L.classList.add('happy'); later(() => close(`¡Eso es, ${me}! Una más 💙`), 1.6); };
   L.querySelector('.bye-go').onclick = () => close(`Te esperaremos, ${me} 🥲`);
   L.querySelector('.bye-skip').onclick = end;
 
@@ -68,11 +72,11 @@ export async function playDespedida(me) {
   await new Promise((r) => { if (vid.readyState >= 3) return r(); vid.addEventListener('canplay', r, { once: true }); setTimeout(r, 3000); });
   vid.play().catch(() => { vid.muted = true; vid.play().catch(() => {}); });
   requestAnimationFrame(() => L.classList.add('in'));
-  say(`${me} se quiere ir…`);
+  later(() => L.classList.add('titled'), .2); later(() => L.classList.add('untitled'), 2.6);
   const lines = shuffle(LINES);
   others.forEach((f, i) => later(() => {
     const s = stats[f], el = document.createElement('div'); el.className = 'bye-slide' + (i % 2 ? ' r' : '');
-    el.innerHTML = `${face(f)}<div class="bye-cap"><b>${esc(f)}</b><small>${s ? `${s.games} ${s.games === 1 ? 'partido' : 'partidos'} juntos${s.wins ? ` · ${s.wins} ${s.wins === 1 ? 'victoria' : 'victorias'}` : ''}` : 'siempre en tu equipo'}</small></div>`;
+    el.innerHTML = `${face(f, '', true)}<div class="bye-cap"><b>${esc(f)}</b><small>${s ? `${s.games} ${s.games === 1 ? 'partido' : 'partidos'} juntos${s.wins ? ` · ${s.wins} ${s.wins === 1 ? 'victoria' : 'victorias'}` : ''}` : 'siempre en tu equipo'}</small></div>`;
     el.style.setProperty('--rot', ((i % 2 ? 1 : -1) * (3 + Math.random() * 4)).toFixed(1) + 'deg');
     slides.appendChild(el); requestAnimationFrame(() => el.classList.add('on'));
     later(() => { el.classList.add('off'); later(() => el.remove(), 1.2); }, SLIDE + .4);
