@@ -11,6 +11,7 @@ import './pulse.css';
 import * as engine from './engine.js';
 import { MIN_GAP_MS } from './wave.js';
 import { palettes } from './palette.js';
+import { bakeGradient } from './quantize.js';
 import { tremble, shake, stopTrembles, seekTrembles, trembleCount } from './tremble.js';
 
 const reducedMQ = matchMedia('(prefers-reduced-motion: reduce)');
@@ -66,6 +67,23 @@ function applyTheme(pal, fixed) {
   try { localStorage.setItem('lerelio-theme', pick); } catch (e) { /* nada */ }
 }
 
+// «Completar sesión»: un pulso blanco que barre el color y devuelve Lerelio a su tema original
+const WHITE = (() => { const cols = [.985, .97, .995].map((L) => ({ L, a: 0, b: 0, C: 0, h: 0, w: 0, skin: false, hex: '#ffffff' }));
+  return { sig: 'blanco', source: 'blanco', keys: [], fallback: false, colors: cols, hex: cols.map((x) => x.hex), gradient: bakeGradient(cols, 256) }; })();
+export function resetTheme(x, y) {
+  const R = document.documentElement.style;
+  if (!overlayOpen() && document.documentElement.classList.contains('themed')) {
+    x = Number.isFinite(x) ? x : innerWidth / 2; y = Number.isFinite(y) ? y : innerHeight / 2;
+    document.documentElement.classList.add('pulse-white');
+    const g = engine.addWave({ x, y, palette: WHITE, reduced: reducedMQ.matches });
+    if (g && !reducedMQ.matches && engine.cfg.tremble) shake(x, y, .6);
+    setTimeout(() => document.documentElement.classList.remove('pulse-white'), 3600);
+  }
+  ['--accent', '--focus', '--accent-soft', '--theme'].forEach((k) => R.removeProperty(k));
+  document.documentElement.classList.remove('themed'); themeHue = null;
+  try { localStorage.removeItem('lerelio-theme'); } catch (e) { /* nada */ }
+}
+
 // Un solo oyente para todos los botones muertos
 function onClick(e) {
   const el = e.target instanceof Element ? e.target.closest('[data-pulse]') : null;
@@ -96,6 +114,7 @@ export function initPulse() {
   Object.assign(engine.cfg, window.__lerelioPulseConfig || {});
   try { const t = localStorage.getItem('lerelio-theme'); if (t) applyTheme(null, t); } catch (e) { /* nada */ }
   document.addEventListener('click', onClick);
+  document.addEventListener('click', (e) => { const b = e.target instanceof Element && e.target.closest('#go, .btn-lg.dark'); if (b) resetTheme(e.clientX, e.clientY); }, true);
   document.addEventListener('keydown', onKey);
   palettes.init();
 
