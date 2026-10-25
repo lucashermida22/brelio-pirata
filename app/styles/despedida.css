@@ -151,3 +151,5 @@
 .st-two{font-size:12.5px!important;line-height:1.15!important;white-space:normal!important}
 .st-grid .st-row{height:auto;min-height:44px;padding-top:4px;padding-bottom:4px}
 @media (max-width:520px){ .st-row .st-meta{display:none} .st-bar{width:48px} .st-row{gap:7px} .sec-head{flex-direction:column;gap:2px} }
+.st-btn{margin-top:8px;display:flex;justify-content:center;text-decoration:none}
+@media (max-width:440px){#demo{display:none}}

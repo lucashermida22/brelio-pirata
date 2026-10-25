@@ -32,6 +32,7 @@
     </div>
     <div class="nav-actions">
       <a class="btn-text nav-rec" href="#recursos">Recursos</a>
+      <a class="btn-text nav-rec" href="#estadisticas" title="Estadísticas" aria-label="Estadísticas">📊</a>
       <button class="btn-text nav-gear" id="ajustes" title="Ajustes de Lerelio" aria-label="Ajustes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       <div class="ajustes" id="ajustesPop" hidden><b>Ajustes de Lerelio</b><label>Volumen <span id="volVal">100%</span><input type="range" id="vol" min="0" max="100" step="1"></label></div>
       <button class="btn-text" id="login" data-pulse>Iniciar sesión</button>
@@ -110,6 +111,7 @@
                 <button class="btn block lol-toggle" id="lol" type="button" aria-pressed="false"><span class="lol-dot"></span>Botón LOL<small id="lolState">Off</small></button>
                 <p class="hint lol-hint" id="lolHint">Asigna TOP, JUNGLA, MID, ADC y SUPPORT al generar.</p>
                 <button class="btn blue block" id="go">Completar sesión</button>
+                <a class="btn block st-btn" href="#estadisticas">📊 Lerelio Estadísticas</a>
                 <button class="bye-link" id="leave" type="button">¿alguien se quiere ir?</button>
               </div>
             </div>
