@@ -11,18 +11,22 @@ import { initRecursos, showRecursos } from './recursos.js';
 import { initPulse } from './pulse/index.js';
 import { getVolume, setVolume } from './volume.js';
 import { askWhoLeaves } from './despedida.js';
+import { showStats } from './stats.js';
 import './styles/despedida.css';
 
 // «Recursos» es una página más: #recursos. El resto es la agenda.
 function route() {
-  const rec = location.hash === '#recursos';
-  document.body.dataset.view = rec ? 'recursos' : 'app';
+  const rec = location.hash === '#recursos', st = location.hash === '#estadisticas', other = rec || st;
+  document.body.dataset.view = rec ? 'recursos' : st ? 'stats' : 'app';
   $('#recursosView').hidden = !rec;
-  $('#app').hidden = rec;
-  $('#heroSec').hidden = rec;
-  $('#storiesSec').hidden = rec;
+  $('#statsView').hidden = !st;
+  $('#app').hidden = other;
+  $('#heroSec').hidden = other;
+  $('#storiesSec').hidden = other;
   $('#navRecursos').setAttribute('aria-current', rec ? 'page' : 'false');
+  $('#navStats').setAttribute('aria-current', st ? 'page' : 'false');
   if (rec) { showRecursos(); window.scrollTo(0, 0); }
+  if (st) { showStats(); window.scrollTo(0, 0); }
 }
 
 // Modo «key» del Worker: pide la clave del grupo

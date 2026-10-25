@@ -28,6 +28,7 @@
       <button type="button" class="nav-dead" data-pulse>Clientes</button>
       <button type="button" class="nav-dead" data-pulse>Precios</button>
       <a href="#recursos" id="navRecursos">Recursos</a>
+      <a href="#estadisticas" id="navStats">Estadísticas</a>
     </div>
     <div class="nav-actions">
       <a class="btn-text nav-rec" href="#recursos">Recursos</a>
@@ -132,6 +133,28 @@
             </div>
           </div>
 
+        </div>
+      </div>
+    </section>
+
+    <section class="stage" id="statsView" hidden>
+      <div class="paint" aria-hidden="true"></div>
+      <div class="glass">
+        <div class="screen st-screen">
+          <div class="card">
+            <div class="card-head"><h2 class="card-title">Lerelio Estadísticas</h2></div>
+            <div class="card-body">
+              <div class="chips">
+                <span class="chip">Partidos <b id="stTotal">0</b></span>
+                <span class="chip">Con ganador <b id="stDecided">0</b></span>
+                <span class="chip">Pacientes <b id="stPlayers">0</b></span>
+              </div>
+              <p class="hint">Animación más vista: <b id="stFav">—</b></p>
+              <p class="hint">Marca el ganador de cada pachanga (🏆) para que cuente en los winrates.</p>
+              <a class="btn block" href="#app">← Volver a la agenda</a>
+            </div>
+          </div>
+          <div class="card"><div class="card-head"><h2 class="card-title">Informe clínico de la pachanga</h2></div><div class="card-body" id="statsBody"></div></div>
         </div>
       </div>
     </section>

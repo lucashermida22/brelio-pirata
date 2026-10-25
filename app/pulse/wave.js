@@ -6,9 +6,9 @@ export const SLOTS = 6;          // huecos en el shader: 3 ondas vivas + hasta 3
 export const LIVE = 3;
 export const PAL_ROWS = 8;       // filas de la textura de paletas (potencia de 2: WebGL1 la quiere así para repetir)
 export const MIN_GAP_MS = 90;    // entre dos ondas, como poco (una ráfaga de clics no satura)
-export const FRONT_MS = 2900;    // lo que tarda el frente en llegar a su final, ya fuera de la pantalla (la
+export const FRONT_MS = 2400;    // lo que tarda el frente en llegar a su final, ya fuera de la pantalla (la
                                  // curva es rápida al principio: cruza la pantalla en ~0,8–1 s y luego se posa)
-export const LIFE_MS = 2500;     // vida total de una onda, con su fundido largo
+export const LIFE_MS = 3600;     // vida total de una onda, con su fundido largo
 export const RETIRE_MS = 260;    // fundido rápido de la más vieja cuando llega una cuarta (o se abre el VS)
 export const REDUCED_MS = 1900;  // movimiento reducido: solo un fundido de color
 export const FEATHER = [80, 340];   // ancho del borde del frente: estrecho al nacer, muy suave al llegar lejos
@@ -73,7 +73,7 @@ export function envelope(age, g, reduced) {
     // movimiento reducido: un fundido de color quieto, sin frente, sin giro y sin hueco
     return { fill: 0.6 * smooth(0, 520, age) * (1 - smooth(640, REDUCED_MS, age)), rim: 0, hollow: -1e5, twist: 0, zoom: 0 };
   }
-  const fill = smooth(0, 220, age) * (1 - smooth(620, LIFE_MS, age));
+  const fill = smooth(0, 220, age) * (1 - smooth(1100, LIFE_MS, age));
   const rim = smooth(0, 90, age) * (1 - smooth(260, 1500, age));
   const hollow = age < 420 ? -1e5 : radiusAt(g, age - 420) * 0.6;
   const twist = 0.62 * (1 - Math.exp(-age / 900));

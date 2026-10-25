@@ -121,3 +121,33 @@
 .bye-end h2{margin:18px 0 0}
 .bye.final .bye-me{opacity:0}
 @media (max-width:640px){ .bye-all{margin-top:calc(9vh + 6vh)} }
+
+/* ===== Lerelio Estadísticas ===== */
+.st-screen{grid-template-columns:300px 1fr}
+@media (max-width:960px){.st-screen{grid-template-columns:1fr}}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+.sec-head h3{margin:0;font:600 15px/1.3 var(--f-head);color:#3f3f46}
+.sec-head .hint{margin:0;min-height:0}
+.st-row{gap:10px;margin-bottom:6px}
+.st-row .nm{flex:0 1 auto}
+.st-row .st-meta{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.st-pos{width:18px;text-align:right;font:600 12px/1 var(--f-head);color:var(--muted)}
+.st-bar{width:clamp(60px,12vw,140px);height:6px;border-radius:9px;background:#eef1f5;overflow:hidden;flex:none}
+.st-bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#1a5ddc,#4fa3ff)}
+.st-wr{width:40px;text-align:right;font:700 13px/1 var(--f-head);font-variant-numeric:tabular-nums}
+.st-form{display:flex;gap:3px}
+.st-form i{font:700 10px/16px var(--f-head);font-style:normal;width:16px;text-align:center;border-radius:4px;color:#fff}
+.st-form i.W{background:#16a34a}.st-form i.L{background:#dc2626}
+.st-duo{display:flex}.st-duo > *:nth-child(2){margin-left:-10px}
+.st-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.st-grid .section + .section{margin-top:0}
+@media (max-width:760px){.st-grid{grid-template-columns:1fr}.st-form{display:none}}
+.st-grid > .section{min-width:0;overflow:hidden}
+.st-row .nm{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.st-grid .st-bar{width:clamp(40px,6vw,90px)}
+.st-screen > .card{min-width:0}
+.st-row .nm{flex:1 1 auto}
+.st-row .st-meta{margin-left:0}
+.st-two{font-size:12.5px!important;line-height:1.15!important;white-space:normal!important}
+.st-grid .st-row{height:auto;min-height:44px;padding-top:4px;padding-bottom:4px}
+@media (max-width:520px){ .st-row .st-meta{display:none} .st-bar{width:48px} .st-row{gap:7px} .sec-head{flex-direction:column;gap:2px} }

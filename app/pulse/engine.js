@@ -17,8 +17,8 @@ clock.base = clock.real0 = performance.now();
 
 export const cfg = {
   allowSoftwareGL: false,   // depuración/pruebas: aceptar WebGL por software (SwiftShader)
-  yMin: 0.72,               // luminancia del fondo a intensidad máxima (nunca más oscuro: el texto se lee siempre)
-  maxA: 0.72,               // tope de opacidad (solo cuenta en colores muy claros, que casi no oscurecen)
+  yMin: 0.56,               // luminancia del fondo a intensidad máxima (nunca más oscuro: el texto se lee siempre)
+  maxA: 0.88,               // tope de opacidad (solo cuenta en colores muy claros, que casi no oscurecen)
   scaleCap: 1,              // tope de resolución del lienzo (px de lienzo por px CSS: todo es difuso, más no se nota)
   pixelBudget: 1.8e6,       // y de píxeles totales
   adaptive: true,           // baja la resolución si los fotogramas van lentos

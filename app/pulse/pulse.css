@@ -1,7 +1,7 @@
 /* ===== Onda de color (app/pulse) =====
-   El lienzo va fijo DETRÁS de todo el contenido (z-index -1 en el contexto de apilamiento raíz) y
-   encima del fondo blanco de la página: el texto queda siempre por encima. Solo se ve con una onda viva. */
-.pulse-cv{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100lvh;z-index:-1;pointer-events:none;visibility:hidden;contain:strict}
+   El lienzo va fijo POR ENCIMA de toda la página en modo «multiplicar»: tiñe fondos, tarjetas y paneles
+   (antes solo se veía en los huecos) y el texto oscuro sigue oscuro. Solo se ve con una onda viva. */
+.pulse-cv{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100lvh;z-index:9000;pointer-events:none;visibility:hidden;contain:strict;mix-blend-mode:multiply}
 .pulse-cv.on{visibility:visible}
 
 /* botones que no hacen nada (pero ahora hacen temblar todo): se pueden pulsar y el foco de teclado se ve, como en los demás */
