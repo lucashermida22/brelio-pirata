@@ -16,3 +16,11 @@
 .btn.blue:hover{background:color-mix(in oklab,var(--focus) 88%,#000)}
 .st-bar i{background:linear-gradient(90deg,var(--accent),var(--focus))}
 .ajustes input[type=range]{accent-color:var(--focus)}
+
+/* el color del último pulso se queda como tema de toda la página */
+html.themed body{background:color-mix(in oklab,var(--theme) 9%,#fff);transition:background-color 1.2s ease}
+html.themed header{background:color-mix(in oklab,var(--theme) 10%,rgba(255,255,255,.86))}
+html.themed .btn-dark,html.themed .btn-lg.dark{background:color-mix(in oklab,var(--theme) 55%,#0c0c10);transition:background-color .9s ease}
+html.themed .screen{background:color-mix(in oklab,var(--theme) 6%,var(--panel))}
+html.themed .chip b,html.themed .st-wr{color:var(--accent)}
+html.themed .paint{filter:url(#brush) saturate(1.05) hue-rotate(0deg);box-shadow:inset 0 0 0 999px color-mix(in oklab,var(--theme) 18%,transparent)}

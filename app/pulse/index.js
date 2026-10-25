@@ -49,6 +49,8 @@ function applyTheme(pal) {
   R.setProperty('--accent', `color-mix(in oklab, ${pick} 85%, #000)`);
   R.setProperty('--focus', pick);
   R.setProperty('--accent-soft', `color-mix(in oklab, ${pick} 12%, #fff)`);
+  R.setProperty('--theme', pick);
+  document.documentElement.classList.add('themed');
   try { localStorage.setItem('lerelio-theme', pick); } catch (e) { /* nada */ }
 }
 
