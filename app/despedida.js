@@ -3,12 +3,12 @@
 import { $, esc, toast, shuffle } from './util.js';
 import { state } from './state.js';
 import { photoFor, emojiFor } from './photos.js';
-import { loadAudio } from './media.js';
+import { urlOf } from './media.js';
 import * as api from './api.js';
 
-const SONG = 'despedida/cancion.mp3';
-const START = 8;          // segundo del fichero recortado donde entra el estribillo (≈ 0:48 del original)
-const SLIDE = 4.2;        // segundos por recuerdo
+const VIDEO = 'despedida/video.mp4';   // videoclip recortado desde el 3:42 («si tú te vas…»), ~31 s
+const SLIDE = 4;          // segundos por recuerdo
+const T0 = 2.2;           // primer recuerdo
 
 const face = (name, cls = '') => { const src = photoFor(name);
   return `<div class="bye-face ${cls}">${src ? `<img src="${esc(src)}" alt="" decoding="async">` : `<span>${emojiFor(name)}</span>`}</div>`; };
@@ -37,10 +37,10 @@ const LINES = [
 ];
 
 export async function playDespedida(me) {
-  const others = shuffle(state.players.map((p) => p.name).filter((x) => x !== me)).slice(0, 8);
-  const [song, stats] = await Promise.all([loadAudio(SONG, { timeout: 4000 }), memories(me)]);
+  const others = shuffle(state.players.map((p) => p.name).filter((x) => x !== me)).slice(0, 6);
+  const stats = await memories(me);
   const L = document.createElement('div'); L.className = 'bye'; L.innerHTML = `
-    <div class="bye-bg"></div><div class="bye-slides"></div>
+    <video class="bye-vid" playsinline preload="auto"></video><div class="bye-bg"></div><div class="bye-bars"></div><div class="bye-slides"></div>
     <div class="bye-me">${face(me, 'big')}<b>${esc(me)}</b></div>
     <div class="bye-sub"></div>
     <div class="bye-end"><h2>¿Una partidita más?</h2><p>Todos te estamos esperando, ${esc(me)}</p>
@@ -53,7 +53,7 @@ export async function playDespedida(me) {
   let closed = false;
   const close = (msg) => {
     if (closed) return; closed = true; timers.forEach(clearTimeout); removeEventListener('keydown', onKey);
-    if (song) { const v0 = song.volume, t0 = performance.now(); const iv = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / 900); song.volume = v0 * (1 - k); if (k >= 1) { clearInterval(iv); song.pause(); } }, 40); }
+    { const v0 = vid.volume, t0 = performance.now(); const iv = setInterval(() => { const k = Math.min(1, (performance.now() - t0) / 900); vid.volume = v0 * (1 - k); if (k >= 1) { clearInterval(iv); vid.pause(); vid.removeAttribute('src'); vid.load(); } }, 40); }
     L.classList.add('out'); setTimeout(() => L.remove(), 700); if (msg) toast(msg);
   };
   const end = () => { timers.forEach(clearTimeout); L.classList.add('final'); say(''); };
@@ -63,19 +63,22 @@ export async function playDespedida(me) {
   L.querySelector('.bye-go').onclick = () => close(`Te esperaremos, ${me} 🥲`);
   L.querySelector('.bye-skip').onclick = end;
 
-  if (song) { song.loop = false; song.volume = 1; try { song.currentTime = START; } catch (e) { /* sin metadatos aún */ } song.play().catch(() => {}); }
+  const vid = L.querySelector('.bye-vid'); vid.volume = 1; vid.src = urlOf(VIDEO);
+  vid.addEventListener('ended', () => { if (!closed && !L.classList.contains('final')) end(); });
+  await new Promise((r) => { if (vid.readyState >= 3) return r(); vid.addEventListener('canplay', r, { once: true }); setTimeout(r, 3000); });
+  vid.play().catch(() => { vid.muted = true; vid.play().catch(() => {}); });
   requestAnimationFrame(() => L.classList.add('in'));
   say(`${me} se quiere ir…`);
-  later(() => say('Pero antes, mira esto'), 3.2);
   const lines = shuffle(LINES);
   others.forEach((f, i) => later(() => {
     const s = stats[f], el = document.createElement('div'); el.className = 'bye-slide' + (i % 2 ? ' r' : '');
     el.innerHTML = `${face(f)}<div class="bye-cap"><b>${esc(f)}</b><small>${s ? `${s.games} ${s.games === 1 ? 'partido' : 'partidos'} juntos${s.wins ? ` · ${s.wins} ${s.wins === 1 ? 'victoria' : 'victorias'}` : ''}` : 'siempre en tu equipo'}</small></div>`;
+    el.style.setProperty('--rot', ((i % 2 ? 1 : -1) * (3 + Math.random() * 4)).toFixed(1) + 'deg');
     slides.appendChild(el); requestAnimationFrame(() => el.classList.add('on'));
     later(() => { el.classList.add('off'); later(() => el.remove(), 1.2); }, SLIDE + .4);
     say(lines[i % lines.length](f));
-  }, 6 + i * SLIDE));
-  later(end, 6 + others.length * SLIDE + .6);
+  }, T0 + i * SLIDE));
+  later(end, Math.max(T0 + others.length * SLIDE + .4, 12));
 }
 
 // selector «¿quién se quiere ir?»

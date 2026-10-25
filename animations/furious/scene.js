@@ -37,7 +37,7 @@ export async function playFurious(X){
   sunMesh.scale.setScalar(95); sunMesh.frustumCulled = false;
   const ctx = await X.three({ clear: 0xe9b07a, fov: 38, near: .3, far: 4000, env: false, tone: 'aces_filmic',
     bloom: { intensity: .5, threshold: 1.3, radius: .8, smoothing: .4 },
-    ao: { radius: 2.4, intensity: 2.6, falloff: 1.6, color: 0x1c0d06 },
+    ao: { radius: .9, intensity: 1.4, falloff: .6, color: 0x1c0d06 },
     godrays: { sun: sunMesh, o: { density: .92, decay: .94, weight: .3, exposure: .3, samples: Math.min(innerWidth, innerHeight) < 560 ? 24 : 40 } },
     vignette: { offset: .3, darkness: .42 }, ca: .0005, grain: .035 });
   if (!ctx) return;
@@ -178,7 +178,7 @@ export async function playFurious(X){
       const m4 = new T.Matrix4(), pv = new T.Vector3(), sq = new T.Quaternion(), sv = new T.Vector3(), ld = new T.Vector2(-lightDir.x, -lightDir.z).normalize(), ang = Math.atan2(ld.x, ld.y);
       for (let k = 0; k < nt; k++){ trunks.getMatrixAt(k, m4); m4.decompose(pv, sq, sv); const s = 3.2 * sv.x + 1.2;
         d.position.set(pv.x + ld.x * s * .9, pv.y + .25, pv.z + ld.y * s * .9); d.rotation.set(0, ang, 0); d.scale.set(s, 1, s * 2.4); d.updateMatrix(); blobSh.setMatrixAt(k, d.matrix); }
-      blobSh.renderOrder = 1; scene.add(blobSh); }
+      blobSh.renderOrder = 1; blobSh.visible = false; }   // (desactivado: con la AO se veían sombras dobles)
     [trunks, blobs, cones].forEach(m => { m.castShadow = false; m.receiveShadow = false; if (m.instanceColor) m.instanceColor.needsUpdate = true; scene.add(m); }); }
 
   // cordilleras lejanas en capas (bruma de atardecer)
@@ -292,13 +292,13 @@ export async function playFurious(X){
     const under = new T.Mesh(new T.PlaneGeometry(2.7, 5.4), glowM); under.rotation.x = -Math.PI / 2; under.position.y = .06; g.add(under);
     const isCap = k === caps[ti], faceT = tex(faceCanvas(m.name, isCap ? '#ffcc33' : t.bar, imgs[ii++], isCap ? '★ ' + m.name : m.name));
     const face = new T.Sprite(new T.SpriteMaterial({ map: faceT, transparent: true })); const fs0 = isCap ? 2.05 : 1.45; face.scale.set(fs0, fs0 * 300 / 256, 1); face.position.y = isCap ? 3.1 : 2.8; g.add(face);
-    const driver = new T.Sprite(new T.SpriteMaterial({ map: faceT, transparent: true })); driver.scale.set(.82, .82 * 300 / 256, 1); driver.position.set(-.4, 1.3, .2); g.add(driver);
+    const driver = new T.Sprite(new T.SpriteMaterial({ map: faceT, transparent: true })); driver.scale.set(.82, .82 * 300 / 256, 1); driver.position.set(-.4, 1.3, .2); driver.renderOrder = 3; g.add(driver);
     // copiloto del capitán: Toretto, Paul o el personaje de su equipo
     let pass = null, pb = null, passName = '';
     if (isCap){
       const nm = (t.name || '').replace(/^Team\s+/i, ''); passName = FF_CHAR[nm] ? nm : 'Toretto'; if (win && passName === 'Paul') passName = 'Toretto';
       const pT = tex(ffCharCanvas(passName, t.bar));
-      pass = new T.Sprite(new T.SpriteMaterial({ map: pT, transparent: true })); pass.scale.set(.78, .78 * 300 / 256, 1); pass.position.set(.42, 1.24, 1.15); g.add(pass);
+      pass = new T.Sprite(new T.SpriteMaterial({ map: pT, transparent: true })); pass.scale.set(.78, .78 * 300 / 256, 1); pass.position.set(.42, 1.24, 1.15); pass.renderOrder = 3; g.add(pass);
       pb = new T.Sprite(new T.SpriteMaterial({ map: pT, transparent: true })); pb.scale.set(1.3, 1.3 * 300 / 256, 1); pb.position.set(1.05, 2.95, 0); g.add(pb); face.position.x = -.7;
     }
     scene.add(g);
@@ -685,7 +685,7 @@ export async function playFurious(X){
       const eggShot = kind === 'freeze' || kind === 'matiRide' || kind === 'together';
       c.face.material.opacity = inside || eggShot ? 0 : Math.min(1, et / 1.5) * (kind === 'sunset' || kind === 'wide' ? .0 : 1);
       const open = c === oc || (eggShot && c.captain);
-      c.cab.visible = c.roof.visible = c !== inside && !open; c.driver.visible = c !== inside;
+      c.cab.visible = c !== inside && !open; c.roof.visible = false; c.driver.visible = c !== inside;
       const ds = c === oc ? (inside ? 1.1 : 1.05) : open ? 1 : .82; c.driver.scale.set(ds, ds * 300 / 256, 1);
       if (c.pass){ c.pass.visible = c !== inside; const ps = open ? ds * .92 : .78; c.pass.scale.set(ps, ps * 300 / 256, 1); }
       if (c.pb){ c.pb.visible = c.face.visible; c.pb.material.opacity = c.face.material.opacity; }

@@ -101,6 +101,7 @@ export function buildCar(T, K, paint) {
   const body = add(K.paintG, paint, 0, 0, 0);          // carrocería + retrovisores + alerón (misma pintura)
   const cab = add(K.cabG, M.glass, 0, 0, 0); cab.castShadow = true; cab.renderOrder = 2;
   const roof = add(K.roofG, paint, 0, 0, 0);           // aparte: se oculta con el cristal en las tomas interiores
+  roof.visible = false;   // descapotable: el techo tapaba las caras de dentro
   add(K.trimG, M.trim, 0, 0, 0);                       // parrilla, splitter, taloneras y soportes
   add(K.chromeG, M.chrome, 0, 0, 0, false);            // escapes
   add(K.headS, M.head, 0, 0, 0, false);                // faros
