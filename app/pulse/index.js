@@ -40,11 +40,23 @@ export function pulse(x, y, { source = null } = {}) {
 }
 
 // Tema: el color más vivo de la onda pasa a ser el acento de Lerelio (botones, etiquetas, foco) y se queda
-function applyTheme(pal) {
-  const hex = (pal && pal.hex) || []; if (!hex.length) return;
-  const sat = (h) => { const n = parseInt(h.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
-    return (mx - mn) * (1 - Math.abs(2 * l - 1) * .7) * (l > .18 && l < .82 ? 1 : .3); };
-  const pick = hex.slice().sort((a, b) => sat(b) - sat(a))[0];
+let themeHue = null;
+const hsl2hex = (h, s, l) => { const k = (n) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l), f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+  return '#' + [f(0), f(8), f(4)].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join(''); };
+const hex2hsl = (hx) => { const n = parseInt(hx.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  let h = 0; if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, d ? d / (1 - Math.abs(2 * l - 1)) : 0, l]; };
+// Tema: cada pulso deja un color vivo distinto (de los tonos de las fotos) como tema de Lerelio, y se queda
+function applyTheme(pal, fixed) {
+  let pick = fixed;
+  if (!pick) {
+    const hues = ((pal && pal.hex) || []).map(hex2hsl).filter(([, s]) => s > .12).map(([h]) => h);
+    // un tono de la foto que no sea el actual; si las fotos son grises/parecidas, se gira la rueda de color
+    let h = hues.length ? hues[Math.floor(Math.random() * hues.length)] : Math.random() * 360;
+    if (themeHue != null && Math.abs(((h - themeHue + 540) % 360) - 180) < 40) h = (themeHue + 70 + Math.random() * 220) % 360;
+    pick = hsl2hex(h, .78, .52);
+  }
+  themeHue = hex2hsl(pick)[0];
   const R = document.documentElement.style;
   R.setProperty('--accent', `color-mix(in oklab, ${pick} 85%, #000)`);
   R.setProperty('--focus', pick);
@@ -82,7 +94,7 @@ const idle = (f, timeout) => (window.requestIdleCallback ? requestIdleCallback(f
 
 export function initPulse() {
   Object.assign(engine.cfg, window.__lerelioPulseConfig || {});
-  try { const t = localStorage.getItem('lerelio-theme'); if (t) applyTheme({ hex: [t] }); } catch (e) { /* nada */ }
+  try { const t = localStorage.getItem('lerelio-theme'); if (t) applyTheme(null, t); } catch (e) { /* nada */ }
   document.addEventListener('click', onClick);
   document.addEventListener('keydown', onKey);
   palettes.init();
