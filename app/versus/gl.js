@@ -250,6 +250,7 @@ export function glInit(opts = {}) {
     if (t0 === null) { t0 = now; prev = now; dt = 1 / 60; } else { dt = Math.min(.05, (now - prev) / 1000); adapt(now - prev, now); prev = now; }
     fn && fn(Math.max(0, now - tCall) / 1000, dt);
     composer ? composer.render(dt) : renderer.render(scene, cam);
+    if (t0 === now) { const L = document.getElementById('vsLayer'); L && L.classList.remove('loading'); }   // ya hay imagen: fuera el telón
     raf = requestAnimationFrame(loop);
   };
   // el reloj (`et`) cuenta desde la llamada a start() (la música no espera a la compilación): el 1.er fotograma llega con et ≈ tiempo de compilación

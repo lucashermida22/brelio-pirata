@@ -89,7 +89,8 @@ function generate() {
   if (isOpen()) return;
   const teams = makeTeams($('#num').value);
   if (state.lolMode) assignLanes(teams);
-  const id = pickAnim(state.animPref, lastAnim);
+  const id = state.animPref === 'random' && nextRand ? nextRand : pickAnim(state.animPref, lastAnim);
+  nextRand = null;
   lastAnim = id;
   teams.anim = id;
   $('#result').innerHTML = `<div class="placeholder"><b>Asignando equipos…</b>Los pacientes están entrando en consulta.</div>`;
@@ -116,9 +117,11 @@ function pickWinner(e) {
 }
 
 // precarga la canción de lo siguiente que va a salir
+let nextRand = null;   // en «Aleatoria» se decide ya la siguiente para poder precargarla
 function prefetchNext() {
   if (state.animPref !== 'random') return prefetch(state.animPref);
-  if (!saveData()) animIds().forEach((id) => prefetch(id));
+  nextRand = pickAnim('random', lastAnim);
+  if (!saveData()) prefetch(nextRand);
 }
 
 export function initUI() {
@@ -172,7 +175,7 @@ export function initUI() {
   $('#num').addEventListener('input', updateHint);
   $('#go').addEventListener('click', generate);
   // calienta la animación elegida en cuanto el usuario se acerca al botón
-  ['pointerenter', 'focus', 'touchstart'].forEach((ev) => $('#go').addEventListener(ev, () => { if (state.animPref !== 'random') prefetch(state.animPref); }, { passive: true }));
+  ['pointerenter', 'focus', 'touchstart'].forEach((ev) => $('#go').addEventListener(ev, () => { prefetch(state.animPref !== 'random' ? state.animPref : nextRand); }, { passive: true }));
   $('#reshuffle').addEventListener('click', generate);
   $('#result').addEventListener('click', pickWinner);
 

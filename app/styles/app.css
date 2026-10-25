@@ -7,9 +7,19 @@ body.party-mode .hero h1{animation:floaty .7s ease-in-out infinite}
 body.party-mode .card,body.party-mode .section{animation:glowPulse .65s ease-in-out infinite}
 .team{animation:popIn .6875s cubic-bezier(.2,.8,.2,1) both}
 /* ===== VS reveal overlay ===== */
-#vsLayer{position:fixed;inset:0;z-index:9999;display:none;overflow:hidden;cursor:pointer;
-  background:radial-gradient(ellipse at 50% 30%,rgba(255,255,255,.92) 0%,rgba(255,226,247,.92) 32%,rgba(255,143,210,.6) 66%,rgba(255,84,176,.45) 100%);
+/* fondo neutro: cada animación pone el suyo (el rosa translúcido es solo de Kawaii) */
+#vsLayer{position:fixed;inset:0;z-index:9999;display:none;overflow:hidden;cursor:pointer;background:#07050b}
+#vsLayer[data-anim="kawaii"]{background:radial-gradient(ellipse at 50% 30%,rgba(255,255,255,.92) 0%,rgba(255,226,247,.92) 32%,rgba(255,143,210,.6) 66%,rgba(255,84,176,.45) 100%);
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#vsLayer[data-anim="feria"]{background:#04010c}
+#vsLayer[data-anim="tinder"]{background:#2a0818}
+#vsLayer[data-anim="furious"]{background:#000}
+/* telón de carga de las 3D: oculta el lienzo hasta el primer fotograma ya compilado */
+#vsLayer #vsFx .three-cv{transition:opacity .45s ease}
+#vsLayer.loading #vsFx .three-cv{opacity:0}
+#vsLayer.loading::after{content:"";position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;z-index:60;
+  border:3px solid rgba(255,255,255,.15);border-top-color:rgba(255,255,255,.75);animation:vsSpin .8s linear infinite;pointer-events:none}
+@keyframes vsSpin{to{transform:rotate(360deg)}}
 #vsLayer.active{display:block}
 #vsLayer.active.intro{animation:vsFadeIn .25s ease both}
 #vsLayer.closing{animation:vsFadeOut .45s ease forwards}

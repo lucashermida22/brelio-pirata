@@ -92,10 +92,11 @@ export async function playFurious(X){
   const envify = (m, k) => { m.envMap = envTex; m.envMapIntensity = k; return m; };
   scene.fog = new T.Fog(0xe0a070, 260, 2200);
   // luz física: el sol rasante (algo más alto que el disco para que el relieve reciba luz), relleno cálido y contraluz frío
-  const lightDir = new T.Vector3(-.3, .19, -1).normalize();
+  const lightDir = new T.Vector3(-.3, .21, -1).normalize();
+  let shS = 0; const shF = new T.Vector3(), shR = new T.Vector3().crossVectors(new T.Vector3(0, 1, 0), lightDir).normalize(), shU = new T.Vector3().crossVectors(lightDir, shR).normalize();
   const hemiL = new T.HemisphereLight(0xffd0a0, 0x3a2a20, .75); scene.add(hemiL);
   const sunL = new T.DirectionalLight(0xffcc9a, 3.4);
-  ctx.sun(sunL, { size: 72, res: q.shadow, radius: 3.5, near: 10, far: 1400, bias: -.0006, normalBias: .05 });
+  ctx.sun(sunL, { size: 72, res: q.shadow, radius: 3.5, near: 20, far: 900, bias: -.0004, normalBias: .04 });
   scene.add(sunL, sunL.target);
   const fillL = new T.DirectionalLight(0xa9b4d8, 1.2); fillL.position.set(.4, .5, 1); scene.add(fillL);
   const uTime = { value: 0 }; let liftK = 1;
@@ -788,7 +789,13 @@ export async function playFurious(X){
     floorM.position.x = cam.position.x; floorM.position.z = cam.position.z;
     uTime.value = rt;
     { const lo = kind === 'wide' || kind === 'sunset' || kind === 'forkTop' || alv ? 0 : 1; liftK += (lo - liftK) * Math.min(1, rdt * 2.5); hemiL.intensity = .75 + .75 * liftK; fillL.intensity = 1.2 + 1.1 * liftK; scene.environmentIntensity = .1 + .22 * liftK; }
-    sunL.target.position.copy(L); sunL.position.copy(L).addScaledVector(lightDir, 700); sunL.target.updateMatrixWorld();
+    // sombras: caja ajustada al plano (nítida de cerca, amplia en los aéreos) y anclada a la rejilla de texels (sin temblor)
+    { const close = inside || ['cry', 'together', 'freeze', 'matiRide', 'alvRide'].includes(kind), far = ['wide', 'sunset', 'forkTop', 'alvBoom'].includes(kind);
+      const want = close ? 22 : far ? 170 : 60; if (Math.abs(shS - want) > .5){ shS = want; const sc = sunL.shadow.camera; sc.left = -shS; sc.right = shS; sc.top = shS; sc.bottom = -shS; sc.near = 20; sc.far = 900; sc.updateProjectionMatrix(); sunL.shadow.radius = close ? 4 : far ? 1.5 : 3; }
+      const F = (alv && A3) ? shF.set(A3.x, A3.y, A3.z) : (egg && B && (kind === 'matiRide' || kind === 'freeze')) ? shF.set(B.x, B.y, B.z) : shF.copy(L);
+      const tx = 2 * shS / sunL.shadow.mapSize.x, a1 = Math.round(F.dot(shR) / tx) * tx, a2 = Math.round(F.dot(shU) / tx) * tx, a3 = F.dot(lightDir);
+      F.copy(shR).multiplyScalar(a1).addScaledVector(shU, a2).addScaledVector(lightDir, a3);
+      sunL.target.position.copy(F); sunL.position.copy(F).addScaledVector(lightDir, 450); sunL.target.updateMatrixWorld(); }
     sky.position.copy(cam.position); sunMesh.position.copy(cam.position).addScaledVector(sunDir, 3300);
     // nombres de equipo sobre sus carreteras
     const tagOn = (kind === 'forkTop' && u > 2.4) || (kind === 'wide' && u < 5.6);

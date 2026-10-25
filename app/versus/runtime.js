@@ -52,12 +52,10 @@ export const saveData = () => { const c = navigator.connection; return !!(c && (
 export function warmAll(first) {
   if (saveData()) return;
   const idle = window.requestIdleCallback || ((f) => setTimeout(f, 800));
-  const ids = order.slice().sort((a, b) => (b === first) - (a === first));
-  let i = 0;
-  const next = () => { if (i < ids.length) { prefetch(ids[i++]); idle(next, { timeout: 3000 }); } };
   const start = () => {
-    if (webglOK() && ids.some((k) => registry[k].needsWebGL || registry[k].gl)) kit.loadThree().catch(() => {});
-    idle(next, { timeout: 3000 });
+    if (first) prefetch(first);
+    const m = first && registry[first];
+    if (webglOK() && (!first || m?.needsWebGL || m?.gl) && !kit.quality().mob) kit.loadThree().catch(() => {});
   };
   requestAnimationFrame(() => idle(start, { timeout: 4000 }));
 }
@@ -113,7 +111,10 @@ export async function play(teams, onDone, opts = {}) {
   layer.classList.add('active', 'intro');
   if (win) layer.classList.add('win');
   if (A.gl) layer.classList.add('gl');
+  const is3D = (A.gl || A.needsWebGL) && webglOK();
+  if (is3D) { layer.classList.add('loading'); vs.timers.push(setTimeout(() => layer.classList.remove('loading'), 6000)); }
   document.body.classList.add('party-mode');
+  if (is3D && A.warm) Promise.resolve(A.warm()).catch(() => {});   // escena + three en paralelo con la canción
 
   // el módulo de la animación + su canción, sin pasarse esperando
   const song = A.song ? await loadAudio(A.song, { loop: !!A.songLoop, timeout: 1200 }) : null;
