@@ -279,6 +279,12 @@ export async function saveMatch(animation, teams) {
   return row;
 }
 
+// historial de partidos (para «Alguien se quiere ir»)
+export async function listMatches() {
+  if (backend.mode === 'remote') { try { return await req('/api/matches?limit=200'); } catch (e) { return []; } }
+  return ls.json(LS_MATCHES, []);
+}
+
 export async function setWinner(id, winner) {
   if (!id) return null;
   if (backend.mode === 'remote') { try { return await req('/api/matches/' + encodeURIComponent(id), { method: 'PATCH', json: { winner } }); } catch (e) { return null; } }

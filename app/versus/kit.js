@@ -6,6 +6,7 @@ export { $, $$, rand, shuffle, esc, toast, webglOK } from '../util.js';
 export { photoFor, emojiFor, faceInner, EMOJIS } from '../photos.js';
 export { LANE_COLORS } from '../teams.js';
 import { vs } from './state.js';
+import { trackGain } from '../volume.js';
 import { emojiFor } from '../photos.js';
 import { LANE_COLORS } from '../teams.js';
 
@@ -58,7 +59,7 @@ export function glowCanvas(stops){
 // ---------- sonido sintetizado (Web Audio) ----------
 export function synth(){
   let ctx; try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
-  const master = ctx.createGain(); master.gain.value = .6; master.connect(ctx.destination);
+  const master = trackGain(ctx.createGain(), .6); master.connect(ctx.destination);
   const out = ctx.createDynamicsCompressor(); out.connect(master);
   const nb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), d = nb.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;

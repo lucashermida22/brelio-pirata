@@ -9,6 +9,9 @@ import { loadAnimations, initRuntime, warmAll } from './versus/runtime.js';
 import { initUI, render, showTeams } from './ui.js';
 import { initRecursos, showRecursos } from './recursos.js';
 import { initPulse } from './pulse/index.js';
+import { getVolume, setVolume } from './volume.js';
+import { askWhoLeaves } from './despedida.js';
+import './styles/despedida.css';
 
 // «Recursos» es una página más: #recursos. El resto es la agenda.
 function route() {
@@ -42,6 +45,13 @@ async function boot() {
     document.body.dataset.backend = 'local';
   }
   initUI();
+  // Ajustes: volumen general
+  { const pop = $('#ajustesPop'), r = $('#vol'), out = $('#volVal'), show = () => { out.textContent = Math.round(getVolume() * 100) + '%'; };
+    r.value = Math.round(getVolume() * 100); show();
+    $('#ajustes').addEventListener('click', (e) => { e.stopPropagation(); pop.hidden = !pop.hidden; });
+    document.addEventListener('click', (e) => { if (!pop.hidden && !pop.contains(e.target)) pop.hidden = true; });
+    r.addEventListener('input', () => { setVolume(r.value / 100); show(); }); }
+  $('#leave').addEventListener('click', askWhoLeaves);
   initRecursos();
   initPulse();   // la onda de color de los botones que no hacen nada
   addEventListener('hashchange', route);
