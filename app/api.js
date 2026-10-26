@@ -286,8 +286,17 @@ export async function listMatches() {
 }
 
 // reset de estadísticas (borra el historial de partidos)
-export async function resetMatches() {
-  if (backend.mode === 'remote') return req('/api/matches', { method: 'DELETE' });
+const RESET_HASH = 'c8048fcea624adcc2901e29420d9888ff56472640f5e28d3210b356f74af78d8';   // SHA-256 de la contraseña de reset
+const sha256 = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, '0')).join('');
+// reset de estadísticas (borra el historial de partidos); pide contraseña
+export async function resetMatches(password) {
+  if (backend.mode === 'remote') {
+    const r = await fetch('/api/matches', { method: 'DELETE', headers: { 'x-reset-password': password }, credentials: 'same-origin' });
+    if (r.status === 403) throw new Error('pw');
+    if (!r.ok) throw new Error('http ' + r.status);
+    return r.json();
+  }
+  if (!crypto.subtle || (await sha256(password)) !== RESET_HASH) throw new Error('pw');
   ls.setJson(LS_MATCHES, []); return { deleted: true };
 }
 

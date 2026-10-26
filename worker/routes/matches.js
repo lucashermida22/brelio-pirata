@@ -1,6 +1,8 @@
 // Pachangas: /api/matches
 import { HttpError, json, readJson } from '../http.js';
 
+export const RESET_HASH = 'c8048fcea624adcc2901e29420d9888ff56472640f5e28d3210b356f74af78d8';   // SHA-256 de la contraseña de reset de estadísticas
+
 // teams se guarda como JSON en texto; al leer se parsea
 const parse = (r) => {
   let teams = null;
@@ -30,7 +32,12 @@ export default [
   }],
 
   // reset de estadísticas: borra todo el historial
-  ['DELETE', /^\/api\/matches$/, async ({ env }) => {
+  ['DELETE', /^\/api\/matches$/, async ({ env, request }) => {
+    // contraseña de reset: solo se guarda su SHA-256
+    const pw = request.headers.get('x-reset-password') || '';
+    const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+    const hex = [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    if (hex !== RESET_HASH) throw new HttpError(403, 'Contraseña incorrecta');
     const r = await env.DB.prepare('DELETE FROM matches').run();
     return json({ deleted: r.meta?.changes ?? 0 });
   }],

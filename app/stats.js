@@ -50,8 +50,9 @@ const bar = (wr) => `<span class="st-bar"><i style="width:${wr}%"></i></span><b 
 let resetWired = false;
 export async function showStats() {
   if (!resetWired) { resetWired = true; $('#stReset').addEventListener('click', async () => {
-    if (!confirm('¿Borrar todo el historial de partidos? Las estadísticas empezarán de cero para todo el grupo.')) return;
-    try { await api.resetMatches(); toast('Estadísticas reseteadas'); } catch (e) { toast('No se pudieron resetear'); }
+    const pw = prompt('Contraseña para resetear las estadísticas (borra todo el historial del grupo):');
+    if (!pw) return;
+    try { await api.resetMatches(pw.trim()); toast('Estadísticas reseteadas'); } catch (e) { toast(e.message === 'pw' ? 'Contraseña incorrecta' : 'No se pudieron resetear'); return; }
     showStats();
   }); }
   const box = $('#statsBody');

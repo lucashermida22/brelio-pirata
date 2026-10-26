@@ -37,6 +37,32 @@ const LINES = [
   (f) => `${f} ya está calentando para otra`,
 ];
 
+// fuegos artificiales en un lienzo 2D (ligero): cohetes que suben y estallan en chispas de colores
+function fireworks(L, ms) {
+  const cv = document.createElement('canvas'); cv.className = 'bye-fw'; L.appendChild(cv);
+  const g = cv.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1), P = [], R = [];
+  const size = () => { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; }; size();
+  const COL = ['#ff4d6d', '#ffd23f', '#3ff0ff', '#7dff6a', '#c46bff', '#ff9a3c', '#ffffff'];
+  const launch = () => R.push({ x: (.15 + Math.random() * .7) * cv.width, y: cv.height, vy: -(9 + Math.random() * 5) * dpr, ty: (.15 + Math.random() * .35) * cv.height, c: COL[Math.floor(Math.random() * COL.length)] });
+  const burst = (x, y, c) => { const n = 70 + Math.floor(Math.random() * 40); for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, s = (1.5 + Math.random() * 5) * dpr;
+    P.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, c: Math.random() < .2 ? '#fff' : c }); } };
+  const t0 = performance.now(); let last = t0, nextL = 0;
+  const step = (now) => {
+    if (!cv.isConnected) return;
+    const dt = Math.min(2, (now - last) / 16.7); last = now;
+    if (now - t0 < ms - 900 && now > nextL) { launch(); if (Math.random() < .5) launch(); nextL = now + 220 + Math.random() * 260; }
+    g.globalCompositeOperation = 'destination-out'; g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(0, 0, cv.width, cv.height);
+    g.globalCompositeOperation = 'lighter';
+    for (let i = R.length - 1; i >= 0; i--) { const r = R[i]; r.y += r.vy * dt; r.vy *= .985; g.fillStyle = r.c; g.beginPath(); g.arc(r.x, r.y, 2.4 * dpr, 0, 6.283); g.fill();
+      if (r.y <= r.ty || r.vy > -2) { burst(r.x, r.y, r.c); R.splice(i, 1); } }
+    for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += .06 * dpr * dt; p.vx *= .985; p.vy *= .985; p.life -= .012 * dt;
+      if (p.life <= 0) { P.splice(i, 1); continue; } g.globalAlpha = p.life; g.fillStyle = p.c; g.fillRect(p.x, p.y, 2.2 * dpr, 2.2 * dpr); }
+    g.globalAlpha = 1;
+    if (now - t0 < ms || P.length) requestAnimationFrame(step); else cv.remove();
+  };
+  requestAnimationFrame(step);
+}
+
 export async function playDespedida(me) {
   const all = shuffle(state.players.map((p) => p.name).filter((x) => x !== me)), others = all.slice(0, 6);
   const stats = await memories(me);
@@ -63,7 +89,13 @@ export async function playDespedida(me) {
   const end = () => { timers.forEach(clearTimeout); L.classList.add('final'); say(''); };
   const onKey = (e) => { if (e.key === 'Escape') close(); };
   addEventListener('keydown', onKey);
-  L.querySelector('.bye-stay').onclick = () => { L.classList.add('happy'); later(() => close(`¡Eso es, ${me}! Una más 💙`), 1.6); };
+  L.querySelector('.bye-stay').onclick = () => {
+    if (L.classList.contains('happy')) return;
+    L.classList.add('happy'); L.querySelector('.bye-end h2').textContent = '¡Una más!';
+    L.querySelector('.bye-end p').textContent = `${me} se queda 💙`;
+    fireworks(L, 4200);
+    later(() => close(`¡Eso es, ${me}! Una más 💙`), 4.6);
+  };
   L.querySelector('.bye-go').onclick = () => close(`Te esperaremos, ${me} 🥲`);
   L.querySelector('.bye-skip').onclick = end;
 

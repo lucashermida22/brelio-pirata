@@ -154,3 +154,14 @@
 .st-btn{margin-top:8px;display:flex;justify-content:center;text-decoration:none}
 @media (max-width:440px){#demo{display:none}}
 .st-reset{margin-top:8px;color:#b42318;border-color:#fecdca;background:#fff5f4}.st-reset:hover{background:#fee4e2}
+
+/* «Me quedo»: fuegos artificiales y todos contentos */
+.bye-fw{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}
+.bye.happy .bye-vid{filter:blur(4px) brightness(.6) saturate(1.2)}
+.bye.happy .bye-face.cry::before{content:"😄";position:absolute;right:-8%;bottom:-8%;font-size:clamp(20px,4.2vh,40px);line-height:1;z-index:3;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));animation:byeSmile .5s cubic-bezier(.3,1.7,.5,1) both}
+@keyframes byeSmile{from{transform:scale(0) rotate(-30deg)}to{transform:none}}
+.bye.happy .bye-pal{animation:palJoy .7s cubic-bezier(.3,1.6,.5,1) calc(var(--i) * 70ms) 3 both}
+.bye.happy .bye-end h2{color:#fff;text-shadow:0 0 40px rgba(255,210,80,.8),0 4px 30px rgba(255,120,140,.5);animation:byePulse 1s ease-in-out infinite}
+.bye.happy .bye-btns{opacity:0;pointer-events:none;transition:opacity .4s}
+.bye.happy .bye-pal{opacity:1}

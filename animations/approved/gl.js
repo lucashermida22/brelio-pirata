@@ -14,8 +14,8 @@ export async function setupGL(ctx, root) {
     base = await ctx.three({
       clear: 0x1a0a05, fov: 38, near: .3, far: 4200, tone: 'neutral', env: true, envIntensity: .32,
       bloom: { intensity: .85, threshold: .8, radius: .75, smoothing: .25 },
-      ao: { radius: 1.1, intensity: 3, falloff: 1.6, color: 0x120400 },
-      godrays: true, vignette: { offset: .3, darkness: .55 }, grain: .045, ca: .0005,
+      ao: false,   // rendimiento: el despacho queda detrás del vídeo, la AO no se notaba y era lo más caro
+      godrays: { o: { samples: Math.min(innerWidth, innerHeight) < 560 ? 18 : 30, resolutionScale: .4 } }, vignette: { offset: .3, darkness: .55 }, grain: .045, ca: .0005,
     });
   } catch (e) { base = null; }
   if (!base) return null;
@@ -177,8 +177,10 @@ export async function setupGL(ctx, root) {
   // --- luces: foco de techo con sombra, relleno hemisférico y calidez de rebote ---
   office.add(new T.HemisphereLight(0xffd0a0, 0x2a0e04, .55));
   const key = new T.SpotLight(0xffc48a, 340, 60, .6, .6, 2); key.position.set(-3.5, 7.5, 6.5); key.target.position.set(0, 1, -2);
-  key.castShadow = true; key.shadow.mapSize.set(q.mob ? 1024 : 2048, q.mob ? 1024 : 2048); key.shadow.camera.near = 2; key.shadow.camera.far = 30;
-  key.shadow.bias = -.0004; key.shadow.normalBias = .03; key.shadow.radius = 4; key.shadow.blurSamples = 12;
+  key.castShadow = true; key.shadow.mapSize.set(1024, 1024); key.shadow.camera.near = 2; key.shadow.camera.far = 30;
+  key.shadow.bias = -.0004; key.shadow.normalBias = .03; key.shadow.radius = 4; key.shadow.blurSamples = 8;
+  // el despacho es estático: la sombra se calcula una vez (la moto del huevo la vuelve a activar)
+  renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
   office.add(key, key.target);
   const rim = new T.DirectionalLight(0xff8a50, .6); rim.position.set(6, 2, 4); office.add(rim);
 
@@ -207,7 +209,7 @@ export async function setupGL(ctx, root) {
   // =====================================================================
   const fcv = document.createElement('canvas'); fcv.className = 'ap-glfx'; root.appendChild(fcv);
   let fr = null, fenvRT = null, fpm = null;
-  try { fr = new T.WebGLRenderer({ canvas: fcv, alpha: true, antialias: true, powerPreference: 'high-performance' }); } catch (e) { fr = null; fcv.remove(); }
+  try { fr = new T.WebGLRenderer({ canvas: fcv, alpha: true, antialias: false, powerPreference: 'high-performance' }); } catch (e) { fr = null; fcv.remove(); }
   const fscene = new T.Scene(), fcam = new T.PerspectiveCamera(50, 1, .1, 100); fcam.position.z = 10;
   if (fr) {
     fr.setClearColor(0x000000, 0); fr.outputColorSpace = T.SRGBColorSpace; fr.toneMapping = T.NeutralToneMapping;
@@ -220,7 +222,7 @@ export async function setupGL(ctx, root) {
   const flakeG = new T.PlaneGeometry(.1, .055, 1, 1), dropG = new T.SphereGeometry(.05, 12, 8);
   const parts = [];
   let fW = 0, fH = 0, fRaf = 0, fPrev = 0;
-  function fSize() { fW = root.clientWidth; fH = root.clientHeight; if (!fr) return; fr.setPixelRatio(Math.min(q.dpr, 2)); fr.setSize(fW, fH, false); fcam.aspect = fW / Math.max(1, fH); fcam.updateProjectionMatrix(); }
+  function fSize() { fW = root.clientWidth; fH = root.clientHeight; if (!fr) return; fr.setPixelRatio(Math.min(q.dpr, 1.5)); fr.setSize(fW, fH, false); fcam.aspect = fW / Math.max(1, fH); fcam.updateProjectionMatrix(); }
   fSize(); addEventListener('resize', fSize);
   const toWorld = (px, py) => { const vh = 2 * Math.tan(T.MathUtils.degToRad(25)) * 10, r = root.getBoundingClientRect(); return new T.Vector3(((px - r.left) / fW - .5) * vh * fcam.aspect, (.5 - (py - r.top) / fH) * vh, 0); };
   function fLoop(now) {
@@ -525,6 +527,7 @@ export async function setupGL(ctx, root) {
 
   // Álvaro se va: el huevo arranca de inmediato; la cámara hace el recorrido de siempre
   function alvaro(faceImg) {
+    renderer.shadowMap.autoUpdate = true;
     office.visible = false; idleSrc.visible = false;
     const port = innerWidth / innerHeight < .8;   // vertical: el sol llena el encuadre, menos bruma
     egg = { t: 0, ...buildSunset(faceImg) };
