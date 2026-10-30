@@ -23,7 +23,9 @@ export function makeTeams(numValue) {
     name: tnames[i % tnames.length], svc: services[i % services.length], bar: BARS[i % BARS.length],
     status: STATUS[rand(STATUS.length)], price: PRICES[rand(PRICES.length)], members: [],
   }));
-  shuffled.forEach((p, i) => teams[i % t].members.push({ name: p, dx: dxs[i % dxs.length] }));
+  // «personas por equipo»: se llenan los equipos completos y el que sobra va con los restantes (4 en equipos de 3 → 3 + 1)
+  const per = state.mode === 'teams' ? 0 : Math.max(1, parseInt(numValue) || 1);
+  shuffled.forEach((p, i) => teams[per ? Math.min(t - 1, Math.floor(i / per)) : i % t].members.push({ name: p, dx: dxs[i % dxs.length] }));
   return teams;
 }
 
