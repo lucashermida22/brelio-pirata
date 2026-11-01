@@ -233,7 +233,7 @@ export async function playApproved(ctx) {
     let hi = 0;
     const tick = () => {
       if (!alive() || state !== 'play' || curVid !== v) return;
-      const t = v.currentTime, left = (isFinite(v.duration) ? v.duration : meta.dur) - t;
+      const t = vt(v), left = (isFinite(v.duration) ? v.duration : meta.dur) - t;
       while (hi < hits.length && t >= hits[hi] - (hi === hits.length - 1 ? (cur.kind === 'ban' ? .4 : .26) : .31)) {
         if (hi === hits.length - 1) { const h = hits[hi++]; return verdict(false, true, h); }
         miniHit(hi, hits[hi]); hi++;
@@ -248,10 +248,18 @@ export async function playApproved(ctx) {
   // golpes previos (p. ej. «no boomerangs, no hammers…»): sellito pequeño en cada golpe del vídeo
   const PRESS_LEAD = .26;   // lo que tarda el sello en bajar hasta el papel
   // ejecuta fn cuando el vídeo llegue al segundo `at` (o tras `ms` como red de seguridad)
+  // reloj fino del vídeo: requestVideoFrameCallback da el instante real del fotograma (currentTime va a saltos en
+  // algunos navegadores); entre fotogramas se interpola con el reloj del sistema
+  function vt(v) {
+    if (!v) return 0;
+    if (v.requestVideoFrameCallback && !v._rvfc) { v._rvfc = 1; const cb = (now, md) => { v._mt = md.mediaTime; v._mtAt = now; v.requestVideoFrameCallback(cb); }; v.requestVideoFrameCallback(cb); }
+    if (v._mtAt == null || v.paused) return v.currentTime;
+    return Math.max(v.currentTime, v._mt + (performance.now() - v._mtAt) / 1000 * (v.playbackRate || 1));
+  }
   function atVideo(v, at, ms, fn) {
     const t0 = performance.now(); let doneF = false;
     const go = () => { if (doneF) return; doneF = true; fn(); };
-    const chk = () => { if (doneF || !alive()) return; if (!v || v.paused || v.currentTime >= at || performance.now() - t0 > ms) return go(); requestAnimationFrame(chk); };
+    const chk = () => { if (doneF || !alive()) return; if (!v || v.paused || vt(v) >= at || performance.now() - t0 > ms) return go(); requestAnimationFrame(chk); };
     requestAnimationFrame(chk);
   }
   function miniHit(k, hitAt) {
@@ -275,7 +283,7 @@ export async function playApproved(ctx) {
       anim(ink, [{ opacity: 0, transform: 'scale(1.2) rotate(var(--rot))' }, { opacity: .5, transform: 'scale(.92) rotate(var(--rot))' }], { duration: 120, fill: 'forwards' });
       thud(false); shake(false); pop(ink, 'stamp', KINDS[kind].ink);
     };
-    atVideo(curVid, hitAt, 380 * .82 + 250, miniPress);
+    atVideo(curVid, hitAt, 380 * .82 + 700, miniPress);
   }
 
   // ---------- veredicto: el sello de madera baja, aprieta y se va ----------
@@ -316,7 +324,7 @@ export async function playApproved(ctx) {
       thud(ban); shake(ban); pop(stampEl, ban ? 'ban' : 'stamp', KINDS[kind].ink);
       if (ban) impactFrame(card);
     };
-    if (live && hitAt != null) atVideo(vv, hitAt, TD * press + 250, press0); else later(press0, TD * press);
+    if (live && hitAt != null) atVideo(vv, hitAt, TD * press + 700, press0); else later(press0, TD * press);
     const hold = Math.max(win ? 2400 : ban ? 1350 : 800, rem * 1000 - TD * press + 120);
     wait(TD * press + hold, () => { cap.classList.remove('on'); (win ? finishWin : advance)(); });
   }
