@@ -12,7 +12,7 @@ export async function setupGL(ctx, root) {
   let base = null;
   try {
     base = await ctx.three({
-      clear: 0x1a0a05, fov: 38, near: .3, far: 4200, tone: 'neutral', env: true, envIntensity: .32,
+      clear: 0x1a0a05, fov: 38, fps: 30,   // el despacho es un fondo: 30 fps bastan near: .3, far: 4200, tone: 'neutral', env: true, envIntensity: .32,
       bloom: { intensity: .85, threshold: .8, radius: .75, smoothing: .25 },
       ao: false,   // rendimiento: el despacho queda detrás del vídeo, la AO no se notaba y era lo más caro
       godrays: { o: { samples: Math.min(innerWidth, innerHeight) < 560 ? 18 : 30, resolutionScale: .4 } }, vignette: { offset: .3, darkness: .55 }, grain: .045, ca: .0005,
@@ -527,6 +527,7 @@ export async function setupGL(ctx, root) {
 
   // Álvaro se va: el huevo arranca de inmediato; la cámara hace el recorrido de siempre
   function alvaro(faceImg) {
+    base.setFps && base.setFps(0);
     renderer.shadowMap.autoUpdate = true;
     office.visible = false; idleSrc.visible = false;
     const port = innerWidth / innerHeight < .8;   // vertical: el sol llena el encuadre, menos bruma

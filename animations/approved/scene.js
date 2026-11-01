@@ -234,7 +234,7 @@ export async function playApproved(ctx) {
     const tick = () => {
       if (!alive() || state !== 'play' || curVid !== v) return;
       const t = v.currentTime, left = (isFinite(v.duration) ? v.duration : meta.dur) - t;
-      while (hi < hits.length && t >= hits[hi] - PRESS_LEAD) {
+      while (hi < hits.length && t >= hits[hi] - (hi === hits.length - 1 ? (cur.kind === 'ban' ? .4 : .26) : .31)) {
         if (hi === hits.length - 1) { const h = hits[hi++]; return verdict(false, true, h); }
         miniHit(hi, hits[hi]); hi++;
       }
@@ -259,6 +259,7 @@ export async function playApproved(ctx) {
     const tw = tool.offsetWidth, th = tool.offsetHeight, jx = (rand(2) ? 1 : -1) * rand(16), jy = (rand(2) ? 1 : -1) * rand(18);
     const x = c.x - rr.left - tw / 2 + jx, y = c.y - rr.top - th * .9 + jy;
     tool.style.setProperty('--ink', KINDS[kind].ink);
+    tool.getAnimations().forEach((a) => a.cancel());
     anim(tool, [
       { transform: k === 0 ? `translate(${x + 220}px, ${y - 280}px) rotate(20deg)` : `translate(${x}px, ${y - 60}px)`, opacity: k === 0 ? 0 : 1 },
       { transform: `translate(${x}px, ${y - 30}px)`, opacity: 1, offset: .55 },
@@ -293,6 +294,7 @@ export async function playApproved(ctx) {
     const x = c.x - rr.left - tw / 2, y = c.y - rr.top - th * .9;
     tool.style.setProperty('--ink', KINDS[kind].ink);
     const TD = ban ? 760 : 560, press = ban ? .52 : .46;
+    tool.getAnimations().forEach((a) => a.cancel());   // nada de sellos colgados de golpes anteriores
     anim(tool, [
       { transform: `translate(${x + 260}px, ${y - 320}px) rotate(24deg)`, opacity: 0 },
       { transform: `translate(${x + 30}px, ${y - 90}px) rotate(6deg)`, opacity: 1, offset: press * .55 },
@@ -300,7 +302,7 @@ export async function playApproved(ctx) {
       { transform: `translate(${x}px, ${y + 6}px) rotate(0deg) scale(1, .94)`, opacity: 1, offset: press },
       { transform: `translate(${x}px, ${y - 20}px) rotate(-2deg)`, opacity: 1, offset: press + .12 },
       { transform: `translate(${x - 200}px, ${y - 360}px) rotate(-20deg)`, opacity: 0 },
-    ], { duration: TD, easing: 'cubic-bezier(.45,0,.3,1)' });
+    ], { duration: TD, easing: 'cubic-bezier(.45,0,.3,1)', fill: 'forwards' });
     const press0 = () => {   // momento del golpe: tinta en el papel, sacudida y sonido
       if (!alive()) return;
       card.classList.add('stamped');

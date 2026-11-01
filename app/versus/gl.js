@@ -244,8 +244,10 @@ export function glInit(opts = {}) {
       if (++aFast >= 4 && pr < q.dpr - .01) { aFast = 0; pr = Math.min(q.dpr, +(pr / .85).toFixed(2)); renderer.setPixelRatio(pr); applySize(); aSkip = 3; }
     } else aFast = 0;
   };
+  let fpsCap = opts.fps || 0;
   const loop = (now) => {
     if (dead) return;
+    if (fpsCap && t0 !== null && now - prev < 1000 / fpsCap - 3) { raf = requestAnimationFrame(loop); return; }   // tope de fps (escenas de fondo)
     let dt;
     if (t0 === null) { t0 = now; prev = now; dt = 1 / 60; } else { dt = Math.min(.05, (now - prev) / 1000); adapt(now - prev, now); prev = now; }
     fn && fn(Math.max(0, now - t0) / 1000, dt);   // el reloj arranca con el 1.er fotograma, a la vez que la música
@@ -272,6 +274,7 @@ export function glInit(opts = {}) {
   vs.fxStop = release;
   const api = {
     T, scene, cam, renderer, composer, post, tex, sun, q, canvas, get W() { return W; }, get H() { return H; }, get pixelRatio() { return pr; },
+    setFps(n) { fpsCap = n || 0; },
     start(f) { fn = f; if (!dead && !booting) { booting = true; tCall = performance.now(); boot(); } },
     precompile(obj) { return dead ? Promise.resolve() : compileAll(obj || scene, false).catch(() => {}); },
     release,
