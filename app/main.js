@@ -13,6 +13,7 @@ import { getVolume, setVolume } from './volume.js';
 import { askWhoLeaves } from './despedida.js';
 import { showStats } from './stats.js';
 import './styles/despedida.css';
+import './styles/hero2.css';
 
 // «Recursos» es una página más: #recursos. El resto es la agenda.
 function route() {
@@ -49,6 +50,7 @@ async function boot() {
     document.body.dataset.backend = 'local';
   }
   initUI();
+  { const h = document.querySelector('header'), f = () => h.classList.toggle('over', scrollY < 40); addEventListener('scroll', f, { passive: true }); f(); }
   // Ajustes: volumen general
   { const pop = $('#ajustesPop'), r = $('#vol'), out = $('#volVal'), show = () => { out.textContent = Math.round(getVolume() * 100) + '%'; };
     r.value = Math.round(getVolume() * 100); show();

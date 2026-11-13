@@ -1,0 +1,44 @@
+/* ===== Portada nueva de Brelio: foto a sangre, titular serif y tarjetas flotantes ===== */
+body[data-view="app"] header.over{background:transparent;border-bottom-color:transparent;backdrop-filter:none}
+body[data-view="app"] header.over .nav a,body[data-view="app"] header.over .nav .btn-text,body[data-view="app"] header.over .logo{color:#fff}
+body[data-view="app"] header{transition:background .3s ease}
+body[data-view="app"] header{margin-bottom:-54px}
+.hero.hero2{position:relative;text-align:left;padding:0;min-height:min(92vh,880px);display:flex;align-items:flex-end;overflow:hidden;
+  margin:0 calc(50% - 50vw);background:linear-gradient(100deg,#6b4a2c 0%,#a7774a 38%,#d8b183 70%,#efd8b4 100%)}
+.hero.hero2::before{display:none}
+.h2-bg{position:absolute;inset:0}
+.h2-bg img{position:absolute;right:4%;bottom:0;height:96%;width:auto;max-width:none;object-fit:cover;filter:saturate(.95) contrast(1.02);
+  -webkit-mask:linear-gradient(90deg,transparent 0,#000 22%);mask:linear-gradient(90deg,transparent 0,#000 22%)}
+.h2-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(40,24,12,.62) 0%,rgba(40,24,12,.25) 45%,rgba(40,24,12,0) 70%),linear-gradient(0deg,rgba(30,18,8,.35),transparent 40%)}
+.h2-copy{position:relative;z-index:2;max-width:1140px;width:100%;margin:0 auto;padding:0 82px 15vh}
+.hero2 h1{margin:0;color:#fff;font:400 clamp(44px,6.4vw,92px)/.98 "Instrument Serif",Georgia,serif;letter-spacing:-.01em;text-shadow:0 2px 30px rgba(0,0,0,.25)}
+.hero2 h1 em{font-style:italic}
+.hero2 .lead{color:rgba(255,255,255,.9);max-width:470px;margin:22px 0 0;text-align:left;font-size:16px;line-height:1.55}
+.hero2 .cta{justify-content:flex-start;margin-top:28px;align-items:center;gap:22px}
+.hero2 .btn-lg.dark{background:#fbf6ee;color:#2b2118;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.hero2 .btn-lg.light{background:none;border:0;color:#fff;padding:0;display:inline-flex;align-items:center;gap:8px;box-shadow:none}
+.h2-card{position:absolute;z-index:2;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.94);
+  box-shadow:0 14px 40px rgba(30,18,8,.25);font:500 13px/1.25 Geist,system-ui,sans-serif;color:#1f1a15;animation:h2Float 6s ease-in-out infinite}
+.h2-card b{display:block;font-weight:600}.h2-card small{color:#7a6f64;font-size:12px}
+.h2-card .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:#f2ede6;color:#6a5c4e;font-style:normal;font-size:13px}
+.h2-card .ok{width:18px;height:18px;border-radius:50%;background:#16a34a;color:#fff;display:grid;place-items:center;font-style:normal;font-size:11px;margin-left:10px}
+.h2-card .paid{margin-left:14px;padding:3px 8px;border-radius:99px;background:#e9f7ee;color:#15803d;font-size:11px;font-weight:600}
+.h2-card .saved{margin-left:auto;color:#15803d;font-size:11px}
+.h2-card.c1{left:53%;top:22%}
+.h2-card.c2{right:3%;top:47%;animation-delay:-2s}
+.h2-card.c3{left:61%;bottom:13%;flex-direction:column;align-items:stretch;width:290px;animation-delay:-4s}
+.h2-row{display:flex;align-items:center;gap:12px}
+.h2-card.c3 p{margin:0;padding:9px 10px;border-radius:7px;background:#fff;box-shadow:inset 0 0 0 1px #eee6dc;font-size:12px}
+@keyframes h2Float{50%{transform:translateY(-6px)}}
+@media (max-width:900px){
+  .h2-copy{padding:0 16px 10vh}
+  .h2-bg img{right:-20%;height:88%;opacity:.85}
+  .h2-card.c2,.h2-card.c3{display:none}
+  .h2-card.c1{left:auto;right:12px;top:16%}
+}
+.h2-bg img{right:0;top:0;bottom:auto;height:100%;width:56%;object-fit:cover;object-position:50% 30%;-webkit-mask:linear-gradient(90deg,transparent 0,#000 35%);mask:linear-gradient(90deg,transparent 0,#000 35%)}
+body[data-view="app"] header.over .nav button,body[data-view="app"] header.over .nav .nav-links *{color:rgba(255,255,255,.88)}
+body[data-view="app"] header.over .logo-mark{filter:invert(1)}
+.nav .btn-text{white-space:nowrap}
+body[data-view="app"] header.over #demo{background:#fbf6ee;color:#2b2118;border-color:transparent}
+@media (max-width:900px){.h2-bg img{width:100%;-webkit-mask:linear-gradient(0deg,transparent 0,#000 60%);mask:linear-gradient(0deg,transparent 0,#000 60%);opacity:.7}}
