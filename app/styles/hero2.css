@@ -42,3 +42,27 @@ body[data-view="app"] header.over .logo-mark{filter:invert(1)}
 .nav .btn-text{white-space:nowrap}
 body[data-view="app"] header.over #demo{background:#fbf6ee;color:#2b2118;border-color:transparent}
 @media (max-width:900px){.h2-bg img{width:100%;-webkit-mask:linear-gradient(0deg,transparent 0,#000 60%);mask:linear-gradient(0deg,transparent 0,#000 60%);opacity:.7}}
+
+/* ===== Toda la interfaz con la nueva estética de Brelio: crema cálido, serif, marrón tostado ===== */
+:root{
+  --ink:#231c15; --text:#5a4f45; --muted:#83776b; --grey:#b3a89c;
+  --line:#e8dfd3; --well:#f3ede4; --surface:#fffdf9; --ring:#efe7dc; --panel:#f8f3ec; --field:#f6f0e7;
+  --accent:#6b4a2c; --accent-soft:#f3ebe0; --focus:#8a5a32;
+  --f-serif:"Instrument Serif",Georgia,serif;
+  --r-ctl:8px; --r-card:12px; --r-stage:18px;
+  --shadow-card:0 1px 2px rgba(60,40,20,.05),0 14px 34px -14px rgba(60,40,20,.18);
+}
+body{background:#faf7f2}
+header{background:rgba(250,247,242,.9);border-bottom-color:var(--line)}
+.card-title,.sec-head h3,.st-screen .card-title{font:400 24px/1.1 var(--f-serif);letter-spacing:0;color:var(--ink)}
+.sec-head h3{font-size:20px}
+.paint{display:none}
+.stage{background:linear-gradient(180deg,#f3eade 0%,#faf7f2 100%)}
+.glass{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
+.screen{background:var(--panel);box-shadow:inset 0 0 0 1px var(--ring)}
+.btn.blue{background:#2b2118;border-color:#2b2118;color:#fbf6ee}
+.btn.blue:hover{background:#3b2d20}
+html.themed .btn.blue{background:color-mix(in oklab,var(--theme) 55%,#2b2118);border-color:transparent}
+.btn{background:#fffdf9}
+.chip{background:var(--well);color:var(--text)}
+.ajustes{background:#fffdf9}
