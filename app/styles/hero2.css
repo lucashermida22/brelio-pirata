@@ -66,3 +66,26 @@ html.themed .btn.blue{background:color-mix(in oklab,var(--theme) 55%,#2b2118);bo
 .btn{background:#fffdf9}
 .chip{background:var(--well);color:var(--text)}
 .ajustes{background:#fffdf9}
+
+/* ===== Más orgánico: papel, curvas suaves, aire y jerarquía serif ===== */
+body[data-view="app"] header{margin-bottom:0}
+body[data-view="app"] .hero.hero2{margin-top:-55px}
+body{background:#f7f1e8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .33 0 0 0 0 .2 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.stage{background:none;padding:56px 0 72px;overflow:visible}
+.stage::before{content:"";position:absolute;inset:-40px -10% 0;z-index:-1;pointer-events:none;
+  background:radial-gradient(60% 50% at 20% 10%,rgba(214,170,120,.22),transparent 70%),radial-gradient(50% 45% at 85% 30%,rgba(160,190,150,.16),transparent 70%)}
+.screen{background:transparent;box-shadow:none;padding:0;gap:28px}
+.card{background:rgba(255,253,249,.82);border:1px solid rgba(120,90,60,.10);border-radius:22px;box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 22px 50px -28px rgba(90,60,30,.35)}
+.card-head{border-bottom:1px solid rgba(120,90,60,.08);padding:22px 24px 16px}
+.card-body{padding:22px 24px}
+.card-title{font-size:28px}
+.section{background:rgba(255,255,255,.55);border:1px solid rgba(120,90,60,.08);border-radius:16px;padding:18px}
+.sec-title{font:400 21px/1.15 var(--f-serif);color:var(--ink)}
+.sec-title + .hint,.sec-title + p{margin-top:4px}
+.chip{border-radius:999px;border:0;background:rgba(120,90,60,.08)}
+.btn,.input,input[type=text],select{border-radius:12px}
+.btn.blue{border-radius:999px;height:46px;font-size:15px}
+.prow{border-radius:12px;border-color:rgba(120,90,60,.10);background:rgba(255,255,255,.7)}
+.placeholder{border-radius:16px;border-color:rgba(120,90,60,.18);background:rgba(255,255,255,.35)}
+.placeholder b{font:400 22px/1.2 var(--f-serif)}
+@media (max-width:700px){.stage{padding:20px 0 40px}.card{border-radius:18px}.card-head,.card-body{padding:16px}}
