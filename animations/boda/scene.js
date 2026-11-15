@@ -28,7 +28,7 @@ export async function playBoda(X) {
   // ---------- 2. la escena 3D se prepara mientras suena la película ----------
   const imgs = await Promise.all(teams.flatMap((t) => t.members.map((m) => loadImg(photoFor(m.name)))));
   if (!X.isOpen()) return;
-  const g = await X.three({ clear: 0x9fd2ef, fov: 40, tone: 'neutral', env: true, envIntensity: .8,
+  const g = await X.three({ clear: 0x8ec9ef, fov: 40, tone: 'neutral', env: true, envIntensity: .8,
     bloom: { intensity: .6, threshold: .9, radius: .6 }, ao: false, vignette: { offset: .35, darkness: .35 }, ca: false });
   if (!g || !X.isOpen()) return;
   const { T, scene, cam, tex, sun, q } = g;
@@ -49,11 +49,28 @@ export async function playBoda(X) {
   for (let x = -14; x <= 14; x += 1.6) { const p = new T.Mesh(new T.CylinderGeometry(.04, .04, 1.1, 6), railM); p.position.set(x, .55, -9); scene.add(p); }
   const bar = new T.Mesh(new T.CylinderGeometry(.05, .05, 28.5, 8), railM); bar.rotation.z = Math.PI / 2; bar.position.set(0, 1.1, -9); scene.add(bar);
   ['#e94b3c', '#f6a623', '#3bb273', '#2f7fd8'].forEach((c, i) => { const s = new T.Mesh(new T.PlaneGeometry(30, .5), new T.MeshStandardMaterial({ color: c, roughness: .9 })); s.rotation.x = -Math.PI / 2; s.position.set(0, .01, 5 + i * .5); scene.add(s); });
+  // ---- cubierta de crucero como en el vídeo: mar, superestructura blanca, escenario rojo, toldo y tumbonas ----
+  const sea = new T.Mesh(new T.PlaneGeometry(400, 200), new T.MeshStandardMaterial({ color: 0x2f7fb8, roughness: .25, metalness: .2 }));
+  sea.rotation.x = -Math.PI / 2; sea.position.set(0, -2, -110); scene.add(sea);
+  const white = new T.MeshStandardMaterial({ color: 0xf3f1ec, roughness: .55 }), red = new T.MeshStandardMaterial({ color: 0xc8202a, roughness: .5 });
+  const box = (w, h, d, m, x, y, z) => { const o = new T.Mesh(new T.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; scene.add(o); return o; };
+  box(34, 9, 2, white, 0, 4.5, -13);                       // superestructura del barco
+  for (let x = -15; x <= 15; x += 2.2) box(1.4, .9, .1, new T.MeshStandardMaterial({ color: 0x23435c, roughness: .2, metalness: .5 }), x, 7.4, -11.95);   // ventanas
+  box(20, 2.2, .4, red, 0, 9.7, -12);                      // cartel rojo del escenario
+  box(16, .6, 3, red, 0, .3, -9.6);                        // tarima
+  [-12, -6.5, 6.5, 12].forEach((x) => box(.25, 7, .25, white, x, 3.5, -7.5));   // pilares del toldo
+  box(25, .2, 4, white, 0, 7, -8);                         // toldo
+  ['#e94b3c', '#f6a623', '#3bb273', '#2f7fd8', '#e94b3c', '#f6a623'].forEach((col, i) => box(2.4, .5, .9, new T.MeshStandardMaterial({ color: col, roughness: .7 }), -13 + (i % 3) * 2.8 + (i > 2 ? 21 : 0), .25, 3 + (i % 2)));   // tumbonas de colores
+  // público en la barandilla (siluetas sencillas)
+  const crowdM = ['#f2d0b0', '#3b6ea8', '#e0e0e0', '#2b2b2b', '#c94c4c', '#88b4d8'].map((col) => new T.MeshStandardMaterial({ color: col, roughness: .8 }));
+  for (let i = 0; i < 26; i++) { const x = -14 + i * 1.1 + Math.random() * .4; if (Math.abs(x) < 6.5) continue;
+    const pp = new T.Mesh(new T.CapsuleGeometry(.22, .9, 3, 6), crowdM[i % crowdM.length]); pp.position.set(x, .8, -8.4 + Math.random() * .6); pp.castShadow = true; scene.add(pp);
+    const hd = new T.Mesh(new T.SphereGeometry(.17, 8, 6), crowdM[0]); hd.position.set(x, 1.65, pp.position.z); scene.add(hd); }
   // pantalla gigante con el baile del vídeo
   const vt = new T.VideoTexture(vid); vt.colorSpace = T.SRGBColorSpace;
-  const screen = new T.Mesh(new T.PlaneGeometry(12.8, 7.2), new T.MeshBasicMaterial({ map: vt, toneMapped: false }));
-  screen.position.set(0, 5.4, -10.5); scene.add(screen);
-  const frame = new T.Mesh(new T.BoxGeometry(13.3, 7.7, .3), new T.MeshStandardMaterial({ color: 0x222222, roughness: .5 })); frame.position.set(0, 5.4, -10.7); scene.add(frame);
+  const screen = new T.Mesh(new T.PlaneGeometry(9.6, 5.4), new T.MeshBasicMaterial({ map: vt, toneMapped: false }));
+  screen.position.set(0, 4.3, -9.3); scene.add(screen);
+  const frame = new T.Mesh(new T.BoxGeometry(10, 5.8, .3), new T.MeshStandardMaterial({ color: 0x222222, roughness: .5 })); frame.position.set(0, 4.3, -9.5); scene.add(frame);
 
   // ---------- jugadores: cuerpo de cápsulas con la cara en la cabeza ----------
   const skin = new T.MeshStandardMaterial({ color: 0xf0c8a0, roughness: .7 }), pant = new T.MeshStandardMaterial({ color: 0x2b2f3a, roughness: .8 });
