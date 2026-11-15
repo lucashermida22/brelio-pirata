@@ -61,7 +61,7 @@ export async function playBoda(X) {
     // sitio final: dos bloques, uno por equipo, frente a la pantalla
     const n = t.members.length, cols2 = Math.min(4, n), row = Math.floor(k / cols2), colI = k % cols2;
     const side = teams.length === 1 ? 0 : (ti / (teams.length - 1) - .5) * 2;
-    const tx = side * 4.6 + (colI - (cols2 - 1) / 2) * 1.25, tz = 1.2 + row * 1.4;
+    const tx = side * 4.2 + (colI - (cols2 - 1) / 2) * 1.25, tz = 1.2 + row * 1.4;
     const fromL = ti % 2 === 0;
     root.position.set(fromL ? -16 : 16, 0, tz); scene.add(root);
     people.push({ root, hip, legs, arms, tx, tz, k, sx: root.position.x, delay: k * .22 + ti * .1, ph: Math.random() * 6, style: (k + ti) % 3 });
@@ -70,7 +70,9 @@ export async function playBoda(X) {
   const labels = teams.map((t, ti) => { const el = document.createElement('div'); el.className = 'bd-team'; el.style.setProperty('--c', t.bar || '#888');
     el.innerHTML = `<b>${esc(t.name)}</b>`; const side = teams.length === 1 ? 0 : (ti / (teams.length - 1) - .5) * 2; el.style.left = (50 + side * 24) + '%'; fx.appendChild(el); return el; });
 
-  cam.position.set(0, 4.2, 15); cam.lookAt(0, 2, 0);
+  // distancia de cámara para que todos quepan siempre en pantalla (también en vertical)
+  const spanX = 4.6 * 2 + 5.5, camZ = Math.max(10.5, (spanX / 2) / (Math.tan(T.MathUtils.degToRad(20)) * (g.W / g.H)) + 2);
+  cam.position.set(0, 3.4, camZ); cam.lookAt(0, 1.8, 0);
   const ease = (x) => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
   let started = false, t3 = 0, doneF = false;
 
@@ -83,7 +85,7 @@ export async function playBoda(X) {
         const beat = vid.currentTime / BEAT, song = vid.currentTime >= CUT;
         // cámara: entra desde arriba y luego se mece con la música
         const k = Math.min(1, t3 / 5);
-        cam.position.set(Math.sin(t3 * .25) * 2.4 * k, 5.6 - 2.6 * ease(k) + Math.sin(beat * Math.PI) * .05, 17 - 6.5 * ease(k));
+        cam.position.set(Math.sin(t3 * .2) * .6, 3.4 + Math.sin(beat * Math.PI) * .04, camZ);
         cam.lookAt(0, 1.8, 0);
         people.forEach((p) => {
           const w = Math.min(1, Math.max(0, (t3 - p.delay) / WALK));
@@ -94,28 +96,27 @@ export async function playBoda(X) {
             const s = Math.sin(t3 * 9 + p.ph);
             p.legs[0].rotation.x = s * .6; p.legs[1].rotation.x = -s * .6; p.arms[0].rotation.x = -s * .5; p.arms[1].rotation.x = s * .5;
             p.hip.position.y = Math.abs(s) * .06;
-          } else if (!song) {   // aún no suena la canción: de pie, mirando la boda y meciéndose
-            const s = Math.sin(t3 * 1.6 + p.ph);
-            p.root.rotation.y = s * .1; p.hip.rotation.set(0, 0, s * .03); p.hip.position.y = 0;
-            p.arms[0].rotation.set(0, 0, -.12); p.arms[1].rotation.set(0, 0, .12); p.legs[0].rotation.x = p.legs[1].rotation.x = 0;
-          } else {       // reggaetón: rebote de dembow, perreo con las manos en las rodillas y meneo de cadera
-            const b = beat * Math.PI, s2 = Math.sin(b * 2), s = Math.sin(b), bounce = Math.abs(s2);
-            p.root.position.x = p.tx + Math.sin(b * .5 + p.ph) * .18;
-            if (p.style === 0) {          // perreo: inclinado hacia delante, cadera arriba y abajo a doble tiempo
-              p.root.rotation.y = (p.k % 2 ? Math.PI * .85 : Math.PI * .15) - Math.PI / 2 + Math.PI / 2;
-              p.hip.rotation.x = .55; p.hip.position.y = -.12 + bounce * .12; p.hip.rotation.z = s * .08;
-              p.arms[0].rotation.set(-.9, 0, .25); p.arms[1].rotation.set(-.9, 0, -.25);
-              p.legs[0].rotation.x = p.legs[1].rotation.x = -.45 + bounce * .15;
-            } else if (p.style === 1) {   // dembow: rebote de rodillas, brazo arriba marcando, giro de hombros
-              p.root.rotation.y = s * .35;
-              p.hip.rotation.x = .12; p.hip.position.y = bounce * .1 - .05; p.hip.rotation.z = Math.sin(b) * .14;
-              p.arms[0].rotation.set(-2.5 + bounce * .4, 0, 0); p.arms[1].rotation.set(-.6, 0, .9 + s * .3);
-              p.legs[0].rotation.x = s > 0 ? .3 * bounce : 0; p.legs[1].rotation.x = s < 0 ? .3 * bounce : 0;
-            } else {                      // meneo: cadera en círculos y manos en la cintura
-              p.root.rotation.y = Math.sin(b * .25 + p.ph) * .6;
-              p.hip.rotation.x = .2 + Math.cos(b * 2) * .1; p.hip.rotation.z = Math.sin(b * 2) * .2; p.hip.position.y = bounce * .07 - .04;
-              p.arms[0].rotation.set(0, 0, -.9); p.arms[1].rotation.set(0, 0, .9);
-              p.legs[0].rotation.x = Math.max(0, s2) * .35; p.legs[1].rotation.x = Math.max(0, -s2) * .35;
+          } else {       // reggaetón siempre que estén en su sitio; antes de la canción, a medio gas
+            const A = song ? 1 : .55, b = beat * Math.PI, s = Math.sin(b), s2 = Math.sin(b * 2), bounce = Math.abs(s2);
+            const step = Math.sin(b * .5 + p.ph);           // paso lateral de dembow
+            p.root.position.x = p.tx + step * .55 * A; p.root.position.z = p.tz + Math.cos(b * .5 + p.ph) * .2 * A;
+            const st = (p.style + Math.floor(beat / 16)) % 3;   // cambian de paso cada 16 tiempos
+            if (st === 0) {          // perreo: inclinado, manos a las rodillas, cadera a doble tiempo
+              p.root.rotation.y = p.k % 2 ? Math.PI * .7 : -Math.PI * .7 + Math.PI * 1.4 * 0;
+              p.hip.rotation.set(.6 * A, 0, s * .15 * A); p.hip.position.y = (-.18 + bounce * .24) * A;
+              p.arms[0].rotation.set(-1 + bounce * .2, 0, .35); p.arms[1].rotation.set(-1 + bounce * .2, 0, -.35);
+              p.legs[0].rotation.x = p.legs[1].rotation.x = (-.55 + bounce * .3) * A;
+            } else if (st === 1) {   // dembow: rebote fuerte, brazo arriba bombeando, giro de hombros
+              p.root.rotation.y = s * .6 * A;
+              p.hip.rotation.set(.15, s * .3 * A, s * .2 * A); p.hip.position.y = bounce * .22 * A - .04;
+              p.arms[0].rotation.set(-2.7 + bounce * .6 * A, 0, 0); p.arms[1].rotation.set(-.8 * A, 0, (1 + s * .6) * A);
+              p.legs[0].rotation.x = Math.max(0, s) * .7 * A; p.legs[1].rotation.x = Math.max(0, -s) * .7 * A;
+            } else {                 // meneo: cadera en círculos, giro completo cada 8 tiempos
+              const spin = (beat % 8) < 1 ? (beat % 1) * Math.PI * 2 : 0;
+              p.root.rotation.y = spin + Math.sin(b * .25 + p.ph) * .4;
+              p.hip.rotation.set(.25 + Math.cos(b * 2) * .2 * A, 0, Math.sin(b * 2) * .3 * A); p.hip.position.y = bounce * .12 * A - .05;
+              p.arms[0].rotation.set(-.2, 0, -1 - s * .3); p.arms[1].rotation.set(-.2, 0, 1 - s * .3);
+              p.legs[0].rotation.x = Math.max(0, s2) * .5 * A; p.legs[1].rotation.x = Math.max(0, -s2) * .5 * A;
             }
           }
         });
