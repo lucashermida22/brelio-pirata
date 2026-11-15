@@ -7,7 +7,7 @@ import { $, esc, faceCanvas, loadImg, photoFor } from '@kit';
 //  del baile final proyectado en una pantalla gigante al fondo.
 // =====================================================================
 const CUT = 38.7;        // fin de la escena de la película: empieza la canción
-const START = 30;        // el vídeo arranca aquí: solo el final de la escena de la película
+const ENTER = 14;        // los bailarines entran aquí, con el vídeo sonando de fondo
 const BEAT = .465;       // ~129 ppm
 const WALK = 4;        // segundos de desfile
 const DANCE_DONE = 16;   // a los X s de baile se dan por cerrados los equipos
@@ -20,7 +20,6 @@ export async function playBoda(X) {
   // ---------- 1. el vídeo, a pantalla completa ----------
   const vid = document.createElement('video');
   vid.className = 'bd-vid'; vid.playsInline = true; vid.preload = 'auto'; vid.src = X.url('boda/boda.mp4');
-  vid.addEventListener('loadedmetadata', () => { try { vid.currentTime = START; } catch (e) { /* nada */ } }, { once: true });
   fx.appendChild(vid);
   const tip = document.createElement('button'); tip.className = 'bd-snd'; tip.textContent = '🔇 toca para activar el sonido'; tip.hidden = true; fx.appendChild(tip);
   tip.onclick = (e) => { e.stopPropagation(); vid.muted = false; tip.hidden = true; };
@@ -38,12 +37,10 @@ export async function playBoda(X) {
   scene.add(new T.HemisphereLight(0xcfd8e8, 0x6a5a48, 1.5));
   const sl = new T.DirectionalLight(0xfff0d6, 3); sl.position.set(-10, 14, 6); scene.add(sl, sl.target); sun(sl, { size: 16, res: q.mob ? 1024 : 2048 });
 
-  // fondo: la iglesia de la boda (fotograma del vídeo) y un suelo invisible que recibe las sombras
-  const bgImg = await loadImg(X.url('boda/iglesia.jpg'));
-  if (!X.isOpen()) return;
-  if (bgImg) { const bt = new T.Texture(bgImg); bt.colorSpace = T.SRGBColorSpace; bt.needsUpdate = true; scene.background = bt;
-    const fit = () => { const a = (g.W / g.H) / (bgImg.width / bgImg.height); bt.repeat.set(Math.min(1, a), Math.min(1, 1 / a)); bt.offset.set((1 - bt.repeat.x) / 2, (1 - bt.repeat.y) / 2); };
-    fit(); addEventListener('resize', fit); X.onClose(() => removeEventListener('resize', fit)); }
+  // fondo: el propio vídeo, que sigue moviéndose detrás de los bailarines
+  const bt = new T.VideoTexture(vid); bt.colorSpace = T.SRGBColorSpace; scene.background = bt;
+  const fit = () => { const vw = vid.videoWidth || 16, vh = vid.videoHeight || 9, a = (g.W / g.H) / (vw / vh); bt.repeat.set(Math.min(1, a), Math.min(1, 1 / a)); bt.offset.set((1 - bt.repeat.x) / 2, (1 - bt.repeat.y) / 2); };
+  fit(); vid.addEventListener('loadedmetadata', fit); addEventListener('resize', fit); X.onClose(() => removeEventListener('resize', fit));
   scene.fog = null;
   const floor = new T.Mesh(new T.PlaneGeometry(60, 60), new T.ShadowMaterial({ opacity: .35 }));
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
@@ -79,11 +76,11 @@ export async function playBoda(X) {
 
   const tick = () => {
     if (!X.isOpen()) return;
-    if (!started && (vid.currentTime >= (window.__bodaCut ?? CUT) || vid.ended)) {
+    if (!started && (vid.currentTime >= (window.__bodaCut ?? ENTER) || vid.ended)) {
       started = true; vid.classList.add('off'); g.canvas.style.opacity = '1';
       g.start((et, dt) => {
         t3 += dt * (window.__bodaSpeed || 1);
-        const beat = vid.currentTime / BEAT;
+        const beat = vid.currentTime / BEAT, song = vid.currentTime >= CUT;
         // cámara: entra desde arriba y luego se mece con la música
         const k = Math.min(1, t3 / 5);
         cam.position.set(Math.sin(t3 * .25) * 2.4 * k, 5.6 - 2.6 * ease(k) + Math.sin(beat * Math.PI) * .05, 17 - 6.5 * ease(k));
@@ -97,6 +94,10 @@ export async function playBoda(X) {
             const s = Math.sin(t3 * 9 + p.ph);
             p.legs[0].rotation.x = s * .6; p.legs[1].rotation.x = -s * .6; p.arms[0].rotation.x = -s * .5; p.arms[1].rotation.x = s * .5;
             p.hip.position.y = Math.abs(s) * .06;
+          } else if (!song) {   // aún no suena la canción: de pie, mirando la boda y meciéndose
+            const s = Math.sin(t3 * 1.6 + p.ph);
+            p.root.rotation.y = s * .1; p.hip.rotation.set(0, 0, s * .03); p.hip.position.y = 0;
+            p.arms[0].rotation.set(0, 0, -.12); p.arms[1].rotation.set(0, 0, .12); p.legs[0].rotation.x = p.legs[1].rotation.x = 0;
           } else {       // reggaetón: rebote de dembow, perreo con las manos en las rodillas y meneo de cadera
             const b = beat * Math.PI, s2 = Math.sin(b * 2), s = Math.sin(b), bounce = Math.abs(s2);
             p.root.position.x = p.tx + Math.sin(b * .5 + p.ph) * .18;
@@ -119,7 +120,7 @@ export async function playBoda(X) {
           }
         });
         if (t3 > WALK + 1.5) labels.forEach((l) => l.classList.add('on'));
-        if (!doneF && t3 > WALK + DANCE_DONE) { doneF = true; X.done(); }
+        if (!doneF && vid.currentTime > CUT + DANCE_DONE) { doneF = true; X.done(); }
       });
       return;
     }
